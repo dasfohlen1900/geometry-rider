@@ -80,6 +80,8 @@ function update(){
     player.y = 0;
     player.vy = 0;
 
+    }
+
     for(let obs of obstacles){
         if(obs.type==="block" || obs.type==="topBlock"){
             if(player.x<obs.x+obs.width && player.x+PLAYER_WIDTH>obs.x &&
