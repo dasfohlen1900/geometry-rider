@@ -11,6 +11,24 @@ canvas { display:block; margin:0 auto; background:#111; }
 </head>
 <body>
 <canvas id="gameCanvas" width="800" height="400"></canvas>
+<div id="shop" style="
+    position:absolute; 
+    top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.85);
+    display:none; 
+    color:#fff; 
+    text-align:center;
+    padding-top:50px;
+    font-family:Arial;
+">
+    <h1>Fahrzeug-Shop</h1>
+    <div id="coins" style="font-size:20px; margin-bottom:20px;"></div>
+    <div id="carList"></div>
+    <button onclick="closeShop()" style="
+        margin-top:30px; padding:10px 20px; 
+        font-size:20px; border-radius:10px;
+    ">Zurück</button>
+</div>
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -22,6 +40,17 @@ const PLAYER_WIDTH = 40;
 const PLAYER_HEIGHT = 20;
 const OBSTACLE_WIDTH = 40;
 const BASELINE = canvas.height-40;
+
+// --- Shop ---
+let cars = [
+    {name:"Greenline Classic", color:"#0f0", price:0},
+    {name:"Urban Runner", color:"#3af", price:150},
+    {name:"Street Breeze", color:"#ff0", price:220},
+    {name:"Neon Hopper", color:"#f0f", price:350},
+];
+
+let ownedCars = JSON.parse(localStorage.getItem("ownedCars") || "[0]");
+let selectedCar = parseInt(localStorage.getItem("selectedCar") || 0);
 
 // --- Spielzustände ---
 let state = "start"; // "start", "play", "gameover"
@@ -115,17 +144,31 @@ function update(){
 
 function drawPlayer(){
     ctx.save();
-    ctx.translate(player.x+PLAYER_WIDTH/2, player.y+PLAYER_HEIGHT/2);
+    ctx.translate(player.x + PLAYER_WIDTH/2, player.y + PLAYER_HEIGHT/2);
     ctx.rotate(player.angle);
-    ctx.fillStyle="#0ff"; ctx.shadowColor="#0ff"; ctx.shadowBlur=10;
-    ctx.fillRect(-PLAYER_WIDTH/2+5,-PLAYER_HEIGHT/2,30,20);
-    ctx.shadowBlur=0;
-    ctx.fillStyle="#444"; ctx.beginPath();
-    ctx.arc(-10,12,6,0,Math.PI*2); ctx.fill();
+
+    // Farbe vom aktuell ausgewählten Auto
+    ctx.fillStyle = cars[selectedCar].color;
+    ctx.shadowColor = cars[selectedCar].color;
+    ctx.shadowBlur = 10;
+
+    ctx.fillRect(-PLAYER_WIDTH/2 + 5, -PLAYER_HEIGHT/2, 30, 20);
+
+    ctx.shadowBlur = 0;
+
+    // Räder bleiben dunkel
+    ctx.fillStyle = "#444"; 
     ctx.beginPath();
-    ctx.arc(20,12,6,0,Math.PI*2); ctx.fill();
+    ctx.arc(-10, 12, 6, 0, Math.PI*2); 
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(20, 12, 6, 0, Math.PI*2); 
+    ctx.fill();
+
     ctx.restore();
 }
+
 
 function drawObstacles(){
     obstacles.forEach(obs=>{
@@ -189,6 +232,58 @@ function draw(){
         ctx.fillText("Highscore: "+Math.floor(highscore),canvas.width/2,canvas.height/2+40);
         ctx.fillText("Tippe oder drücke R zum Neustart",canvas.width/2,canvas.height/2+70);
     }
+}
+function openShop(){
+    state = "shop";
+    document.getElementById("shop").style.display = "block";
+    document.getElementById("coins").innerText = "Coins: " + Math.floor(score);
+
+    let html = "";
+    cars.forEach((c,i)=>{
+        let owned = ownedCars.includes(i);
+        let btn = "";
+
+        if(owned){
+            if(selectedCar === i){
+                btn = `<button disabled style="opacity:0.5;">Ausgewählt</button>`;
+            } else {
+                btn = `<button onclick="selectCar(${i})">Wählen</button>`;
+            }
+        } else {
+            btn = `<button onclick="buyCar(${i})">Kaufen (${c.price})</button>`;
+        }
+
+        html += `
+            <div style='margin:15px; font-size:22px;'>
+                <span style='color:${c.color}'>■</span> 
+                ${c.name} &nbsp; 
+                ${btn}
+            </div>
+        `;
+    });
+
+    document.getElementById("carList").innerHTML = html;
+}
+
+function closeShop(){
+    document.getElementById("shop").style.display = "none";
+    state = "start";
+}
+
+function buyCar(id){
+    if(Math.floor(score) < cars[id].price){
+        alert("Zu wenig Coins!");
+        return;
+    }
+    ownedCars.push(id);
+    localStorage.setItem("ownedCars", JSON.stringify(ownedCars));
+    openShop();
+}
+
+function selectCar(id){
+    selectedCar = id;
+    localStorage.setItem("selectedCar", id);
+    openShop();
 }
 
 function gameLoop(){ update(); draw(); requestAnimationFrame(gameLoop); }
