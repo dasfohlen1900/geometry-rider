@@ -91,6 +91,10 @@ let speed = 5;
 // --- Hintergrund ---
 let bgStars = [];
 for(let i=0;i<100;i++) bgStars.push({x:Math.random()*canvas.width, y:Math.random()*canvas.height, size:Math.random()*2+1, speed:0.2+Math.random()*0.3});
+// --- Coins ---
+let coins = parseInt(localStorage.getItem("coins") || "0");
+let coinObjects = [];
+
 
 // --- Funktionen ---
 function spawnObstacle(){
@@ -159,6 +163,26 @@ function update(){
 
     obstacles = obstacles.filter(obs => obs.x+obs.width>0);
     obstacles.forEach(obs => obs.x -= currentSpeed);
+    // --- Coins bewegen ---
+coinObjects = coinObjects.filter(c => c.x + c.size > 0);
+coinObjects.forEach(c => c.x -= currentSpeed);
+
+// --- Coin-Kollision ---
+coinObjects.forEach((c,i)=>{
+    if (player.x < c.x + c.size &&
+        player.x + PLAYER_WIDTH > c.x &&
+        player.y < c.y + c.size &&
+        player.y + PLAYER_HEIGHT > c.y) {
+
+        coins++;
+        localStorage.setItem("coins", coins);
+        coinObjects.splice(i,1);
+    }
+});
+
+// neuen Coin spawnen
+spawnCoin();
+
 
     score += 0.01;
     if(Math.random()<0.03) spawnObstacle();
@@ -212,6 +236,28 @@ function drawObstacles(){
         }
     });
 }
+function drawCoins(){
+    coinObjects.forEach(c=>{
+        ctx.fillStyle = "#ff0";
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, c.size, 0, Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle = "#aa0";
+        ctx.stroke();
+    });
+}
+
+
+function spawnCoin(){
+    if(Math.random() < 0.02){ // 2% Chance pro Frame
+        coinObjects.push({
+            x: canvas.width,
+            y: BASELINE - 80 - Math.random()*150,
+            size: 15
+        });
+    }
+}
+
 
 function drawBackground(){
     ctx.fillStyle="#111"; ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -238,6 +284,8 @@ function draw(){
         ctx.fillStyle="#fff"; ctx.font="20px Arial"; ctx.shadowColor="#0ff"; ctx.shadowBlur=5;
         ctx.fillText("Score: "+Math.floor(score),10,30);
         ctx.fillText("Highscore: "+Math.floor(highscore),10,60);
+        ctx.fillText("Coins: " + coins, 10, 90);
+
         ctx.shadowBlur=0;
     } else if(state==="gameover"){
         if(score>highscore){ highscore=Math.floor(score); localStorage.setItem("riderHighscore",highscore);}
@@ -247,6 +295,7 @@ function draw(){
         ctx.font="20px Arial";
         ctx.fillText("Score: "+Math.floor(score),canvas.width/2,canvas.height/2+10);
         ctx.fillText("Highscore: "+Math.floor(highscore),canvas.width/2,canvas.height/2+40);
+        ctx.fillText("Aktuelle Coins: " + coins, 10, 90);
         ctx.fillText("Tippe oder drücke R zum Neustart",canvas.width/2,canvas.height/2+70);
     }
     // Wenn state === "shop", der DOM-Overlay zeigt den Shop. Wir zeichnen trotzdem Hintergrund/Spiel.
@@ -255,7 +304,8 @@ function draw(){
 function openShop(){
     state = "shop";
     document.getElementById("shop").style.display = "block";
-    document.getElementById("coins").innerText = "Coins: " + Math.floor(score);
+    document.getElementById("coins").innerText = "Coins: " + coins;
+
 
     let html = "";
     cars.forEach((c,i)=>{
@@ -282,10 +332,14 @@ function closeShop(){
 }
 
 function buyCar(id){
-    if(Math.floor(score) < cars[id].price){
-        alert("Zu wenig Coins!");
-        return;
-    }
+    if (coins < cars[id].price) {
+    alert("Zu wenig Coins!");
+    return;
+}
+coins -= cars[id].price;
+localStorage.setItem("coins", coins);
+
+ }
     if(!ownedCars.includes(id)) ownedCars.push(id);
     localStorage.setItem("ownedCars", JSON.stringify(ownedCars));
     openShop();
