@@ -318,6 +318,10 @@ document.addEventListener("touchstart",()=>{
     isHolding=true;
 });
 document.addEventListener("touchend",()=>{ isHolding=false; });
+document.getElementById("shopButton").addEventListener("click", () => {
+    openShop();
+});
+
 
 gameLoop();
 </script>
