@@ -338,8 +338,6 @@ function buyCar(id){
 }
 coins -= cars[id].price;
 localStorage.setItem("coins", coins);
-
- }
     if(!ownedCars.includes(id)) ownedCars.push(id);
     localStorage.setItem("ownedCars", JSON.stringify(ownedCars));
     openShop();
