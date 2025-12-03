@@ -18,7 +18,7 @@ canvas { display:block; margin:0 auto; background:#111; }
     color:#fff;
     text-align:center;
     padding:50px 20px 20px 20px;
-    font-family:Arial;
+    font-family:Verdana;
     z-index:50;
     overflow-y:auto;
     box-sizing: border-box;
@@ -328,7 +328,7 @@ function draw(){
         ctx.font="20px Arial"; ctx.fillText("Drücke Space oder tippe, um zu starten",canvas.width/2,200);
         ctx.font="16px Arial"; ctx.fillText("Klicke oben rechts auf 'Shop öffnen' für Fahrzeuge",canvas.width/2,240);
     } else if(state==="play"){
-        ctx.fillStyle="#fff"; ctx.font="20px Arial"; ctx.shadowColor="#0ff"; ctx.shadowBlur=5;
+        ctx.fillStyle="#fff"; ctx.font="20px Verdana"; ctx.shadowColor="#0ff"; ctx.shadowBlur=5;
         ctx.fillText("Score: "+Math.floor(score),10,30);
         ctx.fillText("Highscore: "+Math.floor(highscore),10,60);
         ctx.fillText("Coins: " + coins, 10, 90);
