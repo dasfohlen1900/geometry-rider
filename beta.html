@@ -144,6 +144,38 @@ let coinObjects = [];
 
 
 // --- Funktionen ---
+// Promo-Code Liste
+const promoCodes = {
+    "E3S-7NJ": { carId: 33 } // Beispiel: Nebula Phantom
+};
+
+// Code einlösen
+function redeemCode(input) {
+    const code = input.toUpperCase();
+    const reward = promoCodes[code];
+
+    if (!reward) {
+        alert("Ungültiger Code!");
+        return;
+    }
+
+    let msg = "Code eingelöst!";
+
+    if (reward.coins) {
+        coins += reward.coins;
+        localStorage.setItem("coins", coins);
+        msg += ` Du hast ${reward.coins} Coins erhalten.`;
+    }
+
+    if (reward.carId != null && !ownedCars.includes(reward.carId)) {
+        ownedCars.push(reward.carId);
+        localStorage.setItem("ownedCars", JSON.stringify(ownedCars));
+        msg += ` Du hast das Fahrzeug ${cars[reward.carId].name} freigeschaltet!`;
+    }
+
+    alert(msg);
+}
+
 function spawnObstacle(){
     let r = Math.random();
     if(r<0.4){
@@ -366,8 +398,8 @@ function openShop(){
             btn = `<button onclick="buyCar(${i})">Kaufen (${c.price})</button>`;
         }
 
-        // Farbliche Markierung nach Seltenheit
-        let rarityColor = "#fff"; // Standard fallback
+        // Farbe je Seltenheit
+        let rarityColor = "#fff";
         switch(c.rarity){
             case "Standard": rarityColor="#0f0"; break;
             case "Selten": rarityColor="#00f"; break;
@@ -385,8 +417,36 @@ function openShop(){
                  </div>`;
     });
 
+    // --- PROMO-CODE UI ---
+    html += `<div style="margin-top:20px;">
+                <input type="text" id="codeInput" 
+                    placeholder="Code eingeben" 
+                    maxlength="7"
+                    style="text-transform:uppercase;">
+                <button onclick="redeemCode(document.getElementById('codeInput').value)">
+                    Einlösen
+                </button>
+             </div>`;
+
     document.getElementById("carList").innerHTML = html;
+
+    // --- Auto-Formatter NACH dem Einfügen aktivieren ---
+    const codeInput = document.getElementById("codeInput");
+
+    codeInput.addEventListener("input", function(e){
+        // nur A–Z und 0–9 erlauben
+        let val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+        // nach 3 Zeichen Hyphen einfügen → XXX-XXX
+        if(val.length > 3){
+            val = val.slice(0,3) + "-" + val.slice(3,6);
+        }
+
+        // auf maximal 7 Zeichen begrenzen
+        e.target.value = val.slice(0,7);
+    });
 }
+
 
     function closeShop(){
 state = "start"; // oder play, wenn du direkt weiterspielen willst
