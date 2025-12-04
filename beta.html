@@ -23,6 +23,9 @@ canvas { display:block; margin:0 auto; background:#111; }
     overflow-y:auto;
     box-sizing: border-box;
 }
+button, input {
+    font-family: Verdana, sans-serif;
+}
 
 #shopButton {
     position:absolute; top:10px; right:10px; padding:10px 20px;
@@ -356,7 +359,7 @@ function draw(){
     ctx.textAlign="left";
 
     if(state==="start"){
-        ctx.fillStyle="#fff"; ctx.font="40px Arial"; ctx.textAlign="center";
+        ctx.fillStyle="#fff"; ctx.font="40px Verdana"; ctx.textAlign="center";
         ctx.fillText("Mini Geometry Rider",canvas.width/2,150);
         ctx.font="20px Verdana"; ctx.fillText("Drücke Space oder tippe, um zu starten",canvas.width/2,200);
         ctx.font="16px Verdana"; ctx.fillText("Klicke oben rechts auf 'Shop öffnen' für Fahrzeuge",canvas.width/2,240);
