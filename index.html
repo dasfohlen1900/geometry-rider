@@ -513,6 +513,19 @@ function oneTimeReset() {
 
 // Direkt beim Laden der Seite aufrufen
 oneTimeReset();
+function checkWarningOverlay() {
+    const params = new URLSearchParams(window.location.search);
+    if(params.has("warning1")) {
+        document.getElementById("warningOverlay").style.display = "block";
+    }
+}
+
+function closeWarning() {
+    document.getElementById("warningOverlay").style.display = "none";
+}
+
+// direkt beim Laden prüfen
+checkWarningOverlay();
 
 function gameLoop(){ update(); draw(); requestAnimationFrame(gameLoop); }
 
