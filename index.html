@@ -476,6 +476,25 @@ function selectCar(id){
     localStorage.setItem("selectedCar", id);
     openShop();
 }
+function oneTimeReset() {
+    const resetDate = "2025-12-06"; // Datum des einmaligen Resets
+    const today = new Date().toISOString().slice(0,10); // "YYYY-MM-DD"
+    const resetDone = localStorage.getItem("oneTimeResetDone");
+
+    if(today === resetDate && !resetDone) {
+        // --- Zurücksetzen ---
+        localStorage.setItem("coins", "0");
+        localStorage.setItem("riderHighscore", "0");
+        localStorage.setItem("ownedCars", JSON.stringify([0])); // Standard-Auto behalten
+
+        // --- als erledigt markieren ---
+        localStorage.setItem("oneTimeResetDone", "true");
+        console.log("Einmaliger Reset durchgeführt!");
+    }
+}
+
+// Direkt beim Laden der Seite aufrufen
+oneTimeReset();
 
 function gameLoop(){ update(); draw(); requestAnimationFrame(gameLoop); }
 
