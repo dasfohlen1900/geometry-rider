@@ -49,6 +49,14 @@ button, input {
 <button id="shopButton">Shop öffnen</button>
 
 <script>
+const params = new URLSearchParams(window.location.search);
+const user = params.get("user");
+
+if (user !== "lukovic") {
+    // Seite blockieren oder Weiterleitung
+    document.body.innerHTML = "<h1>Access denied</h1>";
+}
+
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
