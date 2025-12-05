@@ -268,17 +268,31 @@ function update(){
 coinObjects = coinObjects.filter(c => c.x + c.size > 0);
 coinObjects.forEach(c => c.x -= currentSpeed);
 
-// --- Coin-Kollision ---
 coinObjects.forEach((c,i)=>{
-    if (player.x < c.x + c.size &&
-        player.x + PLAYER_WIDTH > c.x &&
-        player.y < c.y + c.size &&
-        player.y + PLAYER_HEIGHT > c.y) {
+if (player.x < c.x + c.size &&
+player.x + PLAYER_WIDTH > c.x &&
+player.y < c.y + c.size &&
+player.y + PLAYER_HEIGHT > c.y) {
 
-        coins++;
-        localStorage.setItem("coins", coins);
-        coinObjects.splice(i,1);
+    // --- Münzwert nach Auto-Seltenheit berechnen ---
+    let rarityMultiplier = 1;
+    if(cars[selectedCar]){
+        switch(cars[selectedCar].rarity){
+            case "Standard": rarityMultiplier=1; break;
+            case "Selten": rarityMultiplier=1.5; break;
+            case "Episch": rarityMultiplier=2; break;
+            case "Mythisch": rarityMultiplier=3; break;
+            case "Legendär": rarityMultiplier=6; break;
+            case "Oktopus": rarityMultiplier=12; break;
+            default: rarityMultiplier=1; break;
+        }
     }
+
+    coins += Math.floor(1 * rarityMultiplier); // Münzen erhöhen
+    localStorage.setItem("coins", coins);
+    coinObjects.splice(i,1);
+}
+
 });
 
 // neuen Coin spawnen
