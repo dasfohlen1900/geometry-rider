@@ -170,6 +170,7 @@ let coinObjects = [];
 const promoCodes = {
     "JF4-J89": { coins: 500 }
 };
+let redeemedCodes = JSON.parse(localStorage.getItem("redeemedCodes") || "[]");
 
 // Code einlösen
 function redeemCode(input) {
@@ -178,6 +179,12 @@ function redeemCode(input) {
 
     if (!reward) {
         alert("Ungültiger Code!");
+        return;
+    }
+
+    // --- NEU: Prüfen, ob Code schon eingelöst wurde ---
+    if (redeemedCodes.includes(code)) {
+        alert("Dieser Code wurde bereits verwendet!");
         return;
     }
 
@@ -195,8 +202,13 @@ function redeemCode(input) {
         msg += ` Du hast das Fahrzeug ${cars[reward.carId].name} freigeschaltet!`;
     }
 
+    // --- NEU: Code als benutzt speichern ---
+    redeemedCodes.push(code);
+    localStorage.setItem("redeemedCodes", JSON.stringify(redeemedCodes));
+
     alert(msg);
 }
+
 
 function spawnObstacle(){
     let r = Math.random();
