@@ -438,35 +438,68 @@ function openShop(){
     document.getElementById("coins").innerText = "Coins: " + coins;
 
     let html = "";
-    cars.forEach(c => {
-    let btn = "";
-    const owned = ownedCars.includes(c.id);
+    cars.forEach((c, i) => {
+        let btn = "";
+        const owned = ownedCars.includes(i);
 
-    // Secret-Autos NICHT kaufbar
-    if (c.rarity === "Secret") {
-        if (owned) {
-            btn = `<button onclick="selectCar(${c.id})">
-                        Auswählen
-                   </button>`;
-        } else {
-            btn = `<button disabled>
-                        Nur über Lootboxen
-                   </button>`;
+        // Secret-Autos NICHT kaufbar
+        if (c.rarity === "Secret") {
+            if (owned) {
+                btn = `<button onclick="selectCar(${i})">Auswählen</button>`;
+            } else {
+                btn = `<button disabled>Nur über Lootboxen</button>`;
+            }
+        } else { // Alle anderen Autos
+            if (owned) {
+                btn = `<button onclick="selectCar(${i})">Auswählen</button>`;
+            } else {
+                btn = `<button onclick="buyCar(${i})">Kaufen (${c.price} Coins)</button>`;
+            }
         }
-    }
 
-    // Alle NICHT-Secret Autos sind normal kaufbar
-    else {
-        if (owned) {
-            btn = `<button onclick="selectCar(${c.id})">
-                        Auswählen
-                   </button>`;
-        } else {
-            btn = `<button onclick="buyCar(${c.id})">
-                       Kaufen ( ${c.price} Coins)
-                   </button>`;
+        // Farbe je Seltenheit
+        let rarityColor = "#fff";
+        switch(c.rarity){
+            case "Standard": rarityColor="#0f0"; break;
+            case "Selten": rarityColor="#00f"; break;
+            case "Episch": rarityColor="#a0f"; break;
+            case "Mythisch": rarityColor="#f00"; break;
+            case "Legendär": rarityColor="#ff0"; break;
+            case "Oktopus": rarityColor="#fa0"; break;
+            case "Secret": rarityColor="#fff"; break;
         }
-    }
+
+        html += `<div class="shopItem">
+                    <span style="color:${c.color}; font-size:20px;">■</span>
+                    <div class="name">${c.name}</div>
+                    <div style="color:${rarityColor}; font-weight:bold; min-width:80px;">${c.rarity}</div>
+                    ${btn}
+                 </div>`;
+    });
+
+    // --- PROMO-CODE UI ---
+    html += `<div style="margin-top:20px;">
+                <input type="text" id="codeInput" 
+                    placeholder="Code eingeben" 
+                    maxlength="7"
+                    style="text-transform:uppercase;">
+                <button onclick="redeemCode(document.getElementById('codeInput').value)">
+                    Einlösen
+                </button>
+             </div>`;
+
+    document.getElementById("carList").innerHTML = html;
+
+    // --- Auto-Formatter NACH dem Einfügen aktivieren ---
+    const codeInput = document.getElementById("codeInput");
+    codeInput.addEventListener("input", function(e){
+        let val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        if(val.length > 3){
+            val = val.slice(0,3) + "-" + val.slice(3,6);
+        }
+        e.target.value = val.slice(0,7);
+    });
+}
 
         // Farbe je Seltenheit
         let rarityColor = "#fff";
