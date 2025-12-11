@@ -439,51 +439,52 @@ function openShop(){
     document.getElementById("coins").innerText = "Coins: " + coins;
 
     let html = "";
-  cars.forEach((c, i) => {
-    let btn = "";
-    const owned = ownedCars.includes(i);
+    cars.forEach((c, i) => {
+        let btn = "";
+        const owned = ownedCars.includes(i);
 
-    if (c.rarity === "Secret") {
-        if (owned) {
-            if (selectedCar === i) {
-                btn = `<button disabled style="opacity:0.6;">Ausgewählt</button>`;
+        if (c.rarity === "Secret") {
+            if (owned) {
+                if (selectedCar === i) {
+                    btn = `<button disabled style="opacity:0.6;">Ausgewählt</button>`;
+                } else {
+                    btn = `<button onclick="selectCar(${i})">Auswählen</button>`;
+                }
             } else {
-                btn = `<button onclick="selectCar(${i})">Auswählen</button>`;
+                btn = `<button disabled>Nur über Lootboxen</button>`;
             }
         } else {
-            btn = `<button disabled>Nur über Lootboxen</button>`;
-        }
-    } else {
-        if (owned) {
-            if (selectedCar === i) {
-                btn = `<button disabled style="opacity:0.6;">Ausgewählt</button>`;
+            if (owned) {
+                if (selectedCar === i) {
+                    btn = `<button disabled style="opacity:0.6;">Ausgewählt</button>`;
+                } else {
+                    btn = `<button onclick="selectCar(${i})">Auswählen</button>`;
+                }
             } else {
-                btn = `<button onclick="selectCar(${i})">Auswählen</button>`;
+                btn = `<button onclick="buyCar(${i})">Kaufen (${c.price} Coins)</button>`;
             }
-        } else {
-            btn = `<button onclick="buyCar(${i})">Kaufen (${c.price} Coins)</button>`;
         }
-    }
 
-    // Farbe je Seltenheit
-    let rarityColor = "#fff";
-    switch(c.rarity){
-        case "Standard": rarityColor="#0f0"; break;
-        case "Selten": rarityColor="#00f"; break;
-        case "Episch": rarityColor="#a0f"; break;
-        case "Mythisch": rarityColor="#f00"; break;
-        case "Legendär": rarityColor="#ff0"; break;
-        case "Oktopus": rarityColor="#fa0"; break;
-        case "Secret": rarityColor="#fff"; break;
-    }
+        // Farbe je Seltenheit
+        let rarityColor = "#fff";
+        switch(c.rarity){
+            case "Standard": rarityColor="#0f0"; break;
+            case "Selten": rarityColor="#00f"; break;
+            case "Episch": rarityColor="#a0f"; break;
+            case "Mythisch": rarityColor="#f00"; break;
+            case "Legendär": rarityColor="#ff0"; break;
+            case "Oktopus": rarityColor="#fa0"; break;
+            case "Secret": rarityColor="#fff"; break;
+        }
 
-    html += `<div class="shopItem">
-                <span style="color:${c.color}; font-size:20px;">■</span>
-                <div class="name">${c.name}</div>
-                <div style="color:${rarityColor}; font-weight:bold; min-width:80px;">${c.rarity}</div>
-                ${btn}
-             </div>`;
-});
+        html += `<div class="shopItem">
+                    <span style="color:${c.color}; font-size:20px;">■</span>
+                    <div class="name">${c.name}</div>
+                    <div style="color:${rarityColor}; font-weight:bold; min-width:80px;">${c.rarity}</div>
+                    ${btn}
+                 </div>`;
+    });
+
     // --- PROMO-CODE UI ---
     html += `<div style="margin-top:20px;">
                 <input type="text" id="codeInput" 
@@ -495,9 +496,16 @@ function openShop(){
                 </button>
              </div>`;
 
+    // --- LOOTBOX BUTTON ---
+    html += `<div style="margin-top:30px;">
+                <button onclick="openLootbox()" style="padding:10px 20px; font-size:20px; border-radius:10px;">
+                    Lootbox öffnen (500 Coins)
+                </button>
+             </div>`;
+
     document.getElementById("carList").innerHTML = html;
 
-    // --- Auto-Formatter NACH dem Einfügen aktivieren ---
+    // --- Auto-Formatter für Code ---
     const codeInput = document.getElementById("codeInput");
     codeInput.addEventListener("input", function(e){
         let val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -505,15 +513,8 @@ function openShop(){
             val = val.slice(0,3) + "-" + val.slice(3,6);
         }
         e.target.value = val.slice(0,7);
-        html += `<div style="margin-top:30px;">
-            <button onclick="openLootbox()" style="padding:10px 20px; font-size:20px; border-radius:10px;">
-                Lootbox öffnen (500 Coins)
-            </button>
-         </div>`;
     });
-    
 }
-
     function closeShop(){
 state = "start"; // oder play, wenn du direkt weiterspielen willst
 document.getElementById("shop").style.display = "none";
