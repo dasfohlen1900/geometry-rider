@@ -438,45 +438,51 @@ function openShop(){
     document.getElementById("coins").innerText = "Coins: " + coins;
 
     let html = "";
-    cars.forEach((c, i) => {
-        let btn = "";
-        const owned = ownedCars.includes(i);
+  cars.forEach((c, i) => {
+    let btn = "";
+    const owned = ownedCars.includes(i);
 
-        // Secret-Autos NICHT kaufbar
-        if (c.rarity === "Secret") {
-            if (owned) {
-                btn = `<button onclick="selectCar(${i})">Auswählen</button>`;
+    if (c.rarity === "Secret") {
+        if (owned) {
+            if (selectedCar === i) {
+                btn = `<button disabled style="opacity:0.6;">Ausgewählt</button>`;
             } else {
-                btn = `<button disabled>Nur über Lootboxen</button>`;
-            }
-        } else { // Alle anderen Autos
-            if (owned) {
                 btn = `<button onclick="selectCar(${i})">Auswählen</button>`;
-            } else {
-                btn = `<button onclick="buyCar(${i})">Kaufen (${c.price} Coins)</button>`;
             }
+        } else {
+            btn = `<button disabled>Nur über Lootboxen</button>`;
         }
-
-        // Farbe je Seltenheit
-        let rarityColor = "#fff";
-        switch(c.rarity){
-            case "Standard": rarityColor="#0f0"; break;
-            case "Selten": rarityColor="#00f"; break;
-            case "Episch": rarityColor="#a0f"; break;
-            case "Mythisch": rarityColor="#f00"; break;
-            case "Legendär": rarityColor="#ff0"; break;
-            case "Oktopus": rarityColor="#fa0"; break;
-            case "Secret": rarityColor="#fff"; break;
+    } else {
+        if (owned) {
+            if (selectedCar === i) {
+                btn = `<button disabled style="opacity:0.6;">Ausgewählt</button>`;
+            } else {
+                btn = `<button onclick="selectCar(${i})">Auswählen</button>`;
+            }
+        } else {
+            btn = `<button onclick="buyCar(${i})">Kaufen (${c.price} Coins)</button>`;
         }
+    }
 
-        html += `<div class="shopItem">
-                    <span style="color:${c.color}; font-size:20px;">■</span>
-                    <div class="name">${c.name}</div>
-                    <div style="color:${rarityColor}; font-weight:bold; min-width:80px;">${c.rarity}</div>
-                    ${btn}
-                 </div>`;
-    });
+    // Farbe je Seltenheit
+    let rarityColor = "#fff";
+    switch(c.rarity){
+        case "Standard": rarityColor="#0f0"; break;
+        case "Selten": rarityColor="#00f"; break;
+        case "Episch": rarityColor="#a0f"; break;
+        case "Mythisch": rarityColor="#f00"; break;
+        case "Legendär": rarityColor="#ff0"; break;
+        case "Oktopus": rarityColor="#fa0"; break;
+        case "Secret": rarityColor="#fff"; break;
+    }
 
+    html += `<div class="shopItem">
+                <span style="color:${c.color}; font-size:20px;">■</span>
+                <div class="name">${c.name}</div>
+                <div style="color:${rarityColor}; font-weight:bold; min-width:80px;">${c.rarity}</div>
+                ${btn}
+             </div>`;
+});
     // --- PROMO-CODE UI ---
     html += `<div style="margin-top:20px;">
                 <input type="text" id="codeInput" 
