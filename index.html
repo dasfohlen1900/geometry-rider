@@ -120,7 +120,8 @@ const cars = [
 {name:"Okto-Wave", rarity:"Oktopus", price:20500, color:"#6af"},
 {name:"Inkjet Surge", rarity:"Oktopus", price:23800, color:"#48c"},
 {name:"Kraken Drift", rarity:"Oktopus", price:25500, color:"#24a"},
-{name:"Okto-Prime", rarity:"Oktopus", price:31000, color:"#04f"}
+{name:"Okto-Prime", rarity:"Oktopus", price:31000, color:"#04f"},
+{name:"Nebula II", rarity:"Secret", price:0, color:"a0e"}
 ];
 
 // sichere Initialisierung von ownedCars (immer Array mit Zahlen)
@@ -434,18 +435,35 @@ function openShop(){
     document.getElementById("coins").innerText = "Coins: " + coins;
 
     let html = "";
-    cars.forEach((c,i)=>{
-        let owned = ownedCars.includes(i);
-        let btn = "";
-        if(owned){
-            if(selectedCar === i){
-                btn = `<button disabled style="opacity:0.6;">Ausgewählt</button>`;
-            } else {
-                btn = `<button onclick="selectCar(${i})">Wählen</button>`;
-            }
+    cars.forEach(c => {
+    let btn = "";
+    const owned = ownedCars.includes(c.id);
+
+    // Secret-Autos NICHT kaufbar
+    if (c.rarity === "Secret") {
+        if (owned) {
+            btn = `<button onclick="selectCar(${c.id})">
+                        Auswählen
+                   </button>`;
         } else {
-            btn = `<button onclick="buyCar(${i})">Kaufen (${c.price})</button>`;
+            btn = `<button disabled>
+                        Nur über Lootboxen
+                   </button>`;
         }
+    }
+
+    // Alle NICHT-Secret Autos sind normal kaufbar
+    else {
+        if (owned) {
+            btn = `<button onclick="selectCar(${c.id})">
+                        Auswählen
+                   </button>`;
+        } else {
+            btn = `<button onclick="buyCar(${c.id})">
+                       Kaufen ( ${c.price} Coins)
+                   </button>`;
+        }
+    }
 
         // Farbe je Seltenheit
         let rarityColor = "#fff";
