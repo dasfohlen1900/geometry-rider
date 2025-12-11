@@ -505,8 +505,15 @@ function openShop(){
             val = val.slice(0,3) + "-" + val.slice(3,6);
         }
         e.target.value = val.slice(0,7);
+        html += `<div style="margin-top:30px;">
+            <button onclick="openLootbox()" style="padding:10px 20px; font-size:20px; border-radius:10px;">
+                Lootbox öffnen (500 Coins)
+            </button>
+         </div>`;
     });
+    
 }
+
     function closeShop(){
 state = "start"; // oder play, wenn du direkt weiterspielen willst
 document.getElementById("shop").style.display = "none";
@@ -523,7 +530,53 @@ localStorage.setItem("coins", coins);
     localStorage.setItem("ownedCars", JSON.stringify(ownedCars));
     openShop();
 }
+function openLootbox() {
+    const price = 500;
+    if (coins < price) {
+        alert("Zu wenig Coins für eine Lootbox!");
+        return;
+    }
+    coins -= price;
+    localStorage.setItem("coins", coins);
 
+    // Wahrscheinlichkeiten (in %)
+    const roll = Math.random() * 100;
+    let reward;
+
+    if (roll < 50) { // 50% Standard
+        reward = cars.filter(c => c.rarity === "Standard");
+    } else if (roll < 75) { // 25% Selten
+        reward = cars.filter(c => c.rarity === "Selten");
+    } else if (roll < 90) { // 15% Episch
+        reward = cars.filter(c => c.rarity === "Episch");
+    } else if (roll < 97) { // 7% Mythisch
+        reward = cars.filter(c => c.rarity === "Mythisch");
+    } else if (roll < 99) { // 2% Legendär
+        reward = cars.filter(c => c.rarity === "Legendär");
+    } else { // 1% Oktopus/Secret
+        reward = cars.filter(c => c.rarity === "Oktopus" || c.rarity === "Secret");
+    }
+
+    // Zufälliges Auto aus der Kategorie
+    const car = reward[Math.floor(Math.random() * reward.length)];
+
+    let msg = `Du hast eine Lootbox geöffnet!\n`;
+
+    if (!ownedCars.includes(cars.indexOf(car))) {
+        ownedCars.push(cars.indexOf(car));
+        localStorage.setItem("ownedCars", JSON.stringify(ownedCars));
+        msg += `Neues Fahrzeug freigeschaltet: ${car.name}`;
+    } else {
+        // Falls Auto schon besessen → Coins als Trostpreis
+        const bonus = 1000;
+        coins += bonus;
+        localStorage.setItem("coins", coins);
+        msg += `Du hattest ${car.name} schon. Stattdessen ${bonus} Coins erhalten.`;
+    }
+
+    alert(msg);
+    openShop(); // Shop neu laden
+}
 function selectCar(id){
     selectedCar = id;
     localStorage.setItem("selectedCar", id);
