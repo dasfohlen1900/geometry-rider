@@ -120,8 +120,7 @@ const cars = [
 {name:"Okto-Wave", rarity:"Oktopus", price:20500, color:"#6af"},
 {name:"Inkjet Surge", rarity:"Oktopus", price:23800, color:"#48c"},
 {name:"Kraken Drift", rarity:"Oktopus", price:25500, color:"#24a"},
-{name:"Okto-Prime", rarity:"Oktopus", price:31000, color:"#04f"},
-{name:"Nebula II", rarity:"Secret", price:0, color:"a0e"}
+{name:"Okto-Prime", rarity:"Oktopus", price:31000, color:"#04f"}
 ];
 
 // sichere Initialisierung von ownedCars (immer Array mit Zahlen)
@@ -170,9 +169,7 @@ let coinObjects = [];
 // Promo-Code Liste
 const promoCodes = {
     "JF4-J89": { coins: 500 },
-    "L85-436": { carId: 12 },
-    "ADM-IN8": { carId: 40, coins: 100000 },
-    "ADM-IN9": { carId: 40, coins: 100000 }
+    "L85-436": { carId: 12}
 };
 let redeemedCodes = JSON.parse(localStorage.getItem("redeemedCodes") || "[]");
 
@@ -300,7 +297,6 @@ player.y + PLAYER_HEIGHT > c.y) {
             case "Mythisch": rarityMultiplier=3; break;
             case "Legendär": rarityMultiplier=6; break;
             case "Oktopus": rarityMultiplier=12; break;
-            case "Secret": rarityMultiplier=20; break;
             default: rarityMultiplier=1; break;
         }
     }
@@ -438,68 +434,18 @@ function openShop(){
     document.getElementById("coins").innerText = "Coins: " + coins;
 
     let html = "";
-    cars.forEach((c, i) => {
+    cars.forEach((c,i)=>{
+        let owned = ownedCars.includes(i);
         let btn = "";
-        const owned = ownedCars.includes(i);
-
-        // Secret-Autos NICHT kaufbar
-        if (c.rarity === "Secret") {
-            if (owned) {
-                btn = `<button onclick="selectCar(${i})">Auswählen</button>`;
+        if(owned){
+            if(selectedCar === i){
+                btn = `<button disabled style="opacity:0.6;">Ausgewählt</button>`;
             } else {
-                btn = `<button disabled>Nur über Lootboxen</button>`;
+                btn = `<button onclick="selectCar(${i})">Wählen</button>`;
             }
-        } else { // Alle anderen Autos
-            if (owned) {
-                btn = `<button onclick="selectCar(${i})">Auswählen</button>`;
-            } else {
-                btn = `<button onclick="buyCar(${i})">Kaufen (${c.price} Coins)</button>`;
-            }
+        } else {
+            btn = `<button onclick="buyCar(${i})">Kaufen (${c.price})</button>`;
         }
-
-        // Farbe je Seltenheit
-        let rarityColor = "#fff";
-        switch(c.rarity){
-            case "Standard": rarityColor="#0f0"; break;
-            case "Selten": rarityColor="#00f"; break;
-            case "Episch": rarityColor="#a0f"; break;
-            case "Mythisch": rarityColor="#f00"; break;
-            case "Legendär": rarityColor="#ff0"; break;
-            case "Oktopus": rarityColor="#fa0"; break;
-            case "Secret": rarityColor="#fff"; break;
-        }
-
-        html += `<div class="shopItem">
-                    <span style="color:${c.color}; font-size:20px;">■</span>
-                    <div class="name">${c.name}</div>
-                    <div style="color:${rarityColor}; font-weight:bold; min-width:80px;">${c.rarity}</div>
-                    ${btn}
-                 </div>`;
-    });
-
-    // --- PROMO-CODE UI ---
-    html += `<div style="margin-top:20px;">
-                <input type="text" id="codeInput" 
-                    placeholder="Code eingeben" 
-                    maxlength="7"
-                    style="text-transform:uppercase;">
-                <button onclick="redeemCode(document.getElementById('codeInput').value)">
-                    Einlösen
-                </button>
-             </div>`;
-
-    document.getElementById("carList").innerHTML = html;
-
-    // --- Auto-Formatter NACH dem Einfügen aktivieren ---
-    const codeInput = document.getElementById("codeInput");
-    codeInput.addEventListener("input", function(e){
-        let val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-        if(val.length > 3){
-            val = val.slice(0,3) + "-" + val.slice(3,6);
-        }
-        e.target.value = val.slice(0,7);
-    });
-}
 
         // Farbe je Seltenheit
         let rarityColor = "#fff";
