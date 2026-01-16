@@ -8,4 +8,6 @@
   "ANT-FAS": { "coins": 999999999 },  
   "TAR-JE7": { "coins": 999999999 },
   "LAS-SE6": { "carId": 65 },
-  "LAS-SE7": { "carId": 66 }
+  "AAR-ON1": { "coins": 999999999999999999, "carId": [ 65, 66, 67] },
+  
+
