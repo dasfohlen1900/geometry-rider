@@ -1,4 +1,5 @@
-  "ALC-S3X": { "carId": 69, "coins": 500 },
+ { 
+   "ALC-S3X": { "carId": 69, "coins": 500 },
   "NN2-021": { "coins": 58750, "carId": 40, "carId": 41, "carId": 42 },
   "NN2-022": { "coins": 676767676, "carId": 41 },
   "F0F-0FA": { "coins": 676767676 },
@@ -8,6 +9,5 @@
   "ANT-FAS": { "coins": 999999999 },  
   "TAR-JE7": { "coins": 999999999 },
   "LAS-SE6": { "carId": 65 },
-  "AAR-ON1": { "coins": 999999999999999999, "carId": [ 65, 66, 67] },
-  
-
+  "AAR-ON1": { "coins": 999999999999999999, "carId": [ 65, 66, 67 ] }, 
+}
