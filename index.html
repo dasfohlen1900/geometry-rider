@@ -48,6 +48,7 @@ button, input {
     color:white;
     font-family:Verdana, sans-serif;
     text-align:center;
+    display:
     padding-top:150px;
     z-index:1000;
 ">
@@ -88,7 +89,7 @@ const cars = [
 {name:"Neon Hopper", rarity:"Standard II", price:300, color:"#f0f"},
 {name:"Turbo Rookie", rarity:"Standard I", price:380, color:"#fa0"},
 {name:"Comet Lite", rarity:"Standard I", price:450, color:"#fff"},
-{name:"Silver Pulse", rarity:"Selten", price:650, color:"#ccc"},
+{name:"Silver Pulse", rarity:"Selten III", price:650, color:"#ccc"},
 {name:"Aero Swift", rarity:"Selten", price:720, color:"#9cf"},
 {name:"Velo Strider", rarity:"Selten", price:800, color:"#bfb"},
 {name:"Quartz Rider", rarity:"Selten", price:920, color:"#fc9"},
@@ -565,14 +566,15 @@ switch(c.rarity){
 
     // --- PROMO-CODE UI ---
     html += `<div style="margin-top:20px;">
-                <input type="text" id="codeInput" 
-                    placeholder="Code eingeben" 
-                    maxlength="7"
-                    style="text-transform:uppercase;">
-                <button onclick="redeemCode(document.getElementById('codeInput').value)">
-                    Einlösen
-                </button>
-             </div>`;
+//                <input type="text" id="codeInput" 
+//                    placeholder="Code eingeben" 
+//                    maxlength="7"
+//                    style="text-transform:uppercase;">
+//                <button onclick="redeemCode(document.getElementById('codeInput').value)">
+//                    Einlösen
+//                </button>
+//             </div>
+<p>Der Code-Redeemer ist aus Missbrauchsgründen aktuell gesperrt.<br>Vielen Dank für euer Vertrauen.</p>`;
 
     // --- LOOTBOX BUTTON ---
     html += `<div style="margin-top:30px;">
