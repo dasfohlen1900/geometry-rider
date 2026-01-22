@@ -496,20 +496,64 @@ function openShop(){
         }
 
         // Farbe je Seltenheit
-        let rarityColor = "#fff";
-        switch(c.rarity){
-            case "Standard III": rarityColor="#0f0"; break;
-            case "Standard II": rarityColor="#0f0"; break;
-            case "Standard I": rarityColor="#0f0"; break;
-            case "Standard": rarityColor="#0f0"; break;
-            case "Selten": rarityColor="#00f"; break;
-            case "Episch": rarityColor="#a0f"; break;
-            case "Mythisch": rarityColor="#f00"; break;
-            case "Legendär": rarityColor="#ff0"; break;
-            case "Oktopus": rarityColor="#fa0"; break;
-            case "Secret": rarityColor="#fff"; break;
-            case "Event Car": rarityColor="#fff"; break;
-        }
+let rarityColor = "#fff";
+switch(c.rarity){
+
+    // --- STANDARD ---
+    case "Standard III":
+    case "Standard II":
+    case "Standard I":
+    case "Standard":
+        rarityColor = "#0f0";
+        break;
+
+    // --- SELTEN ---
+    case "Selten III":
+    case "Selten II":
+    case "Selten I":
+    case "Selten":
+        rarityColor = "#00f";
+        break;
+
+    // --- EPISCH ---
+    case "Episch III":
+    case "Episch II":
+    case "Episch I":
+    case "Episch":
+        rarityColor = "#a0f";
+        break;
+
+    // --- MYTHISCH ---
+    case "Mythisch III":
+    case "Mythisch II":
+    case "Mythisch I":
+    case "Mythisch":
+        rarityColor = "#f00";
+        break;
+
+    // --- LEGENDÄR ---
+    case "Legendär III":
+    case "Legendär II":
+    case "Legendär I":
+    case "Legendär":
+        rarityColor = "#ff0";
+        break;
+
+    // --- OKTOPUS ---
+    case "Oktopus III":
+    case "Oktopus II":
+    case "Oktopus I":
+    case "Oktopus":
+        rarityColor = "#fa0";
+        break;
+
+    // --- OHNE STUFEN ---
+    case "Secret":
+    case "Event Car":
+        rarityColor = "#fff";
+        break;
+}
+
 
         html += `<div class="shopItem">
                     <span style="color:${c.color}; font-size:20px;">■</span>
