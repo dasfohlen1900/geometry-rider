@@ -83,7 +83,7 @@ const BASELINE = canvas.height-40;
 
 // --- Shop (Daten) ---
 const cars = [
-{name:"Greenline Classic", rarity:";Milestone", price:0, color:"#0f0"},
+{name:"Greenline Classic", rarity:"Milestone", price:0, color:"#0f0"},
 {name:"Urban Runner", rarity:"Standard III", price:150, color:"#3af"},
 {name:"Street Breeze", rarity:"Standard III", price:220, color:"#ff0"},
 {name:"Neon Hopper", rarity:"Standard III", price:300, color:"#f0f"},
@@ -581,6 +581,9 @@ switch(c.rarity){
     case "Secret":
     case "Event Car":
         rarityColor = "#fff";
+        break;
+    case "Milestone":
+        rarityColor = "#1ce1ff";
         break;
 }
 
