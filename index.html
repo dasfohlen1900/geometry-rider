@@ -601,15 +601,15 @@ switch(c.rarity){
 
     // --- PROMO-CODE UI ---
     html += `<div style="margin-top:20px;">
-//                <input type="text" id="codeInput" 
-//                    placeholder="Code eingeben" 
-//                    maxlength="7"
-//                    style="text-transform:uppercase;">
-//                <button onclick="redeemCode(document.getElementById('codeInput').value)">
-//                    Einlösen
-//                </button>
-//             </div>
-<p>Der Code-Redeemer ist aus Missbrauchsgründen aktuell gesperrt.<br>Vielen Dank für euer Vertrauen.</p>`;
+                <input type="text" id="codeInput" 
+                    placeholder="Code eingeben" 
+                   maxlength="9"
+                    style="text-transform:uppercase;">
+                <button onclick="redeemCode(document.getElementById('codeInput').value)">
+                    Einlösen
+                </button>
+             </div>
+<p>Gib hier deinen achtstelligen Code ein, um tolle Preise zu erhalten.</p>`;
 
     // --- LOOTBOX BUTTON ---
     html += `<div style="margin-top:30px;">
@@ -621,14 +621,18 @@ switch(c.rarity){
     document.getElementById("carList").innerHTML = html;
 
     // --- Auto-Formatter für Code ---
-    const codeInput = document.getElementById("codeInput");
-    codeInput.addEventListener("input", function(e){
-        let val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-        if(val.length > 3){
-            val = val.slice(0,3) + "-" + val.slice(3,6);
-        }
-        e.target.value = val.slice(0,7);
-    });
+const codeInput = document.getElementById("codeInput");
+
+codeInput.addEventListener("input", function(e){
+    let val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+    if(val.length > 4){
+        val = val.slice(0,4) + "-" + val.slice(4,8);
+    }
+
+    e.target.value = val.slice(0,9);
+});
+
 }
     function closeShop(){
 state = "start"; // oder play, wenn du direkt weiterspielen willst
