@@ -349,21 +349,24 @@ player.y < c.y + c.size &&
 player.y + PLAYER_HEIGHT > c.y) {
 
     // --- Münzwert nach Auto-Seltenheit berechnen ---
-    let rarityMultiplier = 1;
-    if(cars[selectedCar]){
-        switch(cars[selectedCar].rarity){
-            case "Standard": rarityMultiplier=1; break;
-            case "Selten": rarityMultiplier=1.5; break;
-            case "Episch": rarityMultiplier=2; break;
-            case "Mythisch": rarityMultiplier=3; break;
-            case "Legendär": rarityMultiplier=6; break;
-            case "Oktopus": rarityMultiplier=12; break;
-            case "Secret": rarityMultiplier=20; break;
-            case "Event Car": rarityMultiplier=67; break;
-            case "OG": rarityMultiplier=250; break;    
-            default: rarityMultiplier=1; break;
-        }
+let rarityMultiplier = 1;
+
+if(cars[selectedCar]){
+    const r = cars[selectedCar].rarity;
+
+    switch(true){
+        case /^Standard/.test(r): rarityMultiplier = 1; break;
+        case /^Selten/.test(r): rarityMultiplier = 2; break;
+        case /^Episch/.test(r): rarityMultiplier = 3; break;
+        case /^Mythisch/.test(r): rarityMultiplier = 5; break;
+        case /^Legendär/.test(r): rarityMultiplier = 10; break;
+        case /^Oktopus/.test(r): rarityMultiplier = 25; break;
+        case r === "Secret": rarityMultiplier = 50; break;
+        case r === "Event Car": rarityMultiplier = 167; break;
+        case r === "OG": rarityMultiplier = 250; break;
+        default: rarityMultiplier = 1;
     }
+}
 
     coins += Math.floor(1 * rarityMultiplier); // Münzen erhöhen
     localStorage.setItem("coins", coins);
