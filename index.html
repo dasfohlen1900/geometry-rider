@@ -63,6 +63,26 @@ button, input {
 <div id="shop">
     <h1>Fahrzeug-Shop</h1>
     <div id="coins" style="font-size:20px; margin-bottom:12px;"></div>
+    <div id="filters">
+
+    <select id="rarityFilter">
+        <option value="all">Alle Seltenheiten</option>
+        <option value="Standard">Standard</option>
+        <option value="Selten">Selten</option>
+        <option value="Episch">Episch</option>
+        <option value="Mythisch">Mythisch</option>
+        <option value="Legendär">Legendär</option>
+        <option value="Oktopus">Oktopus</option>
+        <option value="Secret">Secret</option>
+        <option value="Event Car">Event Car</option>
+    </select>
+
+    <input type="number" id="minPrice" placeholder="Min Preis">
+    <input type="number" id="maxPrice" placeholder="Max Preis">
+
+    <input type="text" id="nameSearch" placeholder="Name suchen...">
+
+</div>
     <div id="carList"></div>
     <button onclick="closeShop()" style="margin-top:30px; padding:10px 20px; font-size:20px; border-radius:10px;">Zurück</button>
 </div>
@@ -697,6 +717,56 @@ function openLootbox() {
     alert(msg);
     openShop(); // Shop neu laden
 }
+function filterCars(){
+
+    const rarityVal = document.getElementById("rarityFilter").value;
+    const min = Number(document.getElementById("minPrice").value) || 0;
+    const max = Number(document.getElementById("maxPrice").value) || Infinity;
+    const search = document.getElementById("nameSearch").value.toLowerCase();
+
+    const filtered = cars.filter(c => {
+
+        // ---- RARITY FILTER ----
+        const rarityMatch =
+            rarityVal === "all" ||
+            c.rarity.startsWith(rarityVal);
+
+        // ---- PRICE FILTER ----
+        const priceMatch =
+            c.price >= min &&
+            c.price <= max;
+
+        // ---- NAME SEARCH ----
+        const nameMatch =
+            c.name.toLowerCase().includes(search);
+
+        return rarityMatch && priceMatch && nameMatch;
+    });
+
+    renderCars(filtered);
+}
+function renderCars(list){
+
+    const container = document.getElementById("carList");
+    container.innerHTML = "";
+
+    list.forEach(c => {
+
+        const div = document.createElement("div");
+        div.className = "carCard";
+
+        div.innerHTML = `
+            <h3 style="color:${c.color}">${c.name}</h3>
+            <p>${c.rarity}</p>
+            <p>${c.price} ₡</p>
+        `;
+
+        container.appendChild(div);
+    });
+}
+document
+  .querySelectorAll("#filters input, #filters select")
+  .forEach(el => el.addEventListener("input", filterCars));
 function selectCar(id){
     selectedCar = id;
     localStorage.setItem("selectedCar", id);
