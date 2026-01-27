@@ -685,15 +685,15 @@ function openLootbox() {
     const roll = Math.random() * 100;
     let reward;
 
-    if (roll < 50) {
+    if (roll < 30) {
         reward = cars.filter(c => c.rarity.startsWith("Standard"));
-    } else if (roll < 75) {
+    } else if (roll < 50) {
         reward = cars.filter(c => c.rarity.startsWith("Selten"));
-    } else if (roll < 90) {
+    } else if (roll < 70) {
         reward = cars.filter(c => c.rarity.startsWith("Episch"));
-    } else if (roll < 97) {
+    } else if (roll < 77) {
         reward = cars.filter(c => c.rarity.startsWith("Mythisch"));
-    } else if (roll < 99) {
+    } else if (roll < 89) {
         reward = cars.filter(c => c.rarity.startsWith("Legendär"));
     } else {
         reward = cars.filter(c =>
