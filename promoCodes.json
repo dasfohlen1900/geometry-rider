@@ -2,5 +2,6 @@
 "TARJ-E777": { "coins": 999999999 },
 "LASS-E676": { "carId": 65 },
 "LASS-E767": { "carId": 66 },
-"TARJ-E444": { "coins": 999999999 }, "carId": 75 }
-
+"TARJ-E444": { "coins": 999999999, "carId": 75 },
+"PAUL-E67M": { "carId": 103, "coins": 599999999 }
+}
