@@ -672,50 +672,62 @@ localStorage.setItem("coins", coins);
 }
 function openLootbox() {
     const price = 1500;
+
     if (coins < price) {
         alert("Zu wenig Coins für eine Lootbox!");
         return;
     }
+
     coins -= price;
     localStorage.setItem("coins", coins);
 
-    // Wahrscheinlichkeiten (in %)
+    // 🎲 Wahrscheinlichkeiten (in %)
     const roll = Math.random() * 100;
     let reward;
 
-    if (roll < 50) { // 50% Standard
-        reward = cars.filter(c => c.rarity === "Standard");
-    } else if (roll < 75) { // 25% Selten
-        reward = cars.filter(c => c.rarity === "Selten");
-    } else if (roll < 90) { // 15% Episch
-        reward = cars.filter(c => c.rarity === "Episch");
-    } else if (roll < 97) { // 7% Mythisch
-        reward = cars.filter(c => c.rarity === "Mythisch");
-    } else if (roll < 99) { // 2% Legendär
-        reward = cars.filter(c => c.rarity === "Legendär");
-    } else { // 1% Oktopus/Secret
-        reward = cars.filter(c => c.rarity === "Oktopus" || c.rarity === "Secret");
+    if (roll < 50) {
+        reward = cars.filter(c => c.rarity.startsWith("Standard"));
+    } else if (roll < 75) {
+        reward = cars.filter(c => c.rarity.startsWith("Selten"));
+    } else if (roll < 90) {
+        reward = cars.filter(c => c.rarity.startsWith("Episch"));
+    } else if (roll < 97) {
+        reward = cars.filter(c => c.rarity.startsWith("Mythisch"));
+    } else if (roll < 99) {
+        reward = cars.filter(c => c.rarity.startsWith("Legendär"));
+    } else {
+        reward = cars.filter(c =>
+            c.rarity.startsWith("Oktopus") || c.rarity === "Secret"
+        );
     }
 
-    // Zufälliges Auto aus der Kategorie
+    // 🎯 Zufälliges Auto aus Kategorie
     const car = reward[Math.floor(Math.random() * reward.length)];
+    const index = cars.indexOf(car);
 
-    let msg = `Du hast eine Lootbox geöffnet!\n`;
+    let msg = `🎁 Du hast eine Lootbox geöffnet!\n\n`;
 
-    if (!ownedCars.includes(cars.indexOf(car))) {
-        ownedCars.push(cars.indexOf(car));
+    if (!ownedCars.includes(index)) {
+
+        // 🆕 Neues Auto
+        ownedCars.push(index);
         localStorage.setItem("ownedCars", JSON.stringify(ownedCars));
-        msg += `Neues Fahrzeug freigeschaltet: ${car.name}`;
+        msg += `🚗 Neues Fahrzeug freigeschaltet:\n${car.name}`;
+
     } else {
-        // Falls Auto schon besessen → Coins als Trostpreis
-        const bonus = 1000;
+
+        // 💰 Schon besessen → 400–1800 Coins
+        const bonus = Math.floor(Math.random() * (1800 - 400 + 1)) + 400;
+
         coins += bonus;
         localStorage.setItem("coins", coins);
-        msg += `Du hattest ${car.name} schon. Stattdessen ${bonus} Coins erhalten.`;
+
+        msg += `♻️ ${car.name} hattest du schon.\n` +
+               `Du erhältst stattdessen ${bonus} Coins!`;
     }
 
     alert(msg);
-    openShop(); // Shop neu laden
+    openShop();
 }
 function filterCars(){
 
