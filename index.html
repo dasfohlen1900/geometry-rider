@@ -525,27 +525,27 @@ function openShop(){
         let btn = "";
         const owned = ownedCars.includes(i);
 
-        if (c.rarity === "Secret") {
-            if (owned) {
-                if (selectedCar === i) {
-                    btn = `<button disabled style="opacity:0.6;">Ausgewählt</button>`;
-                } else {
-                    btn = `<button onclick="selectCar(${i})">Auswählen</button>`;
+        //if (c.rarity === "Secret") {
+            //if (owned) {
+                //if (selectedCar === i) {
+                    //btn = `<button disabled style="opacity:0.6;">Ausgewählt</button>`;
+                //} else {
+                    //btn = `<button onclick="selectCar(${i})">Auswählen</button>`;
                 }
-            } else {
-                btn = `<button disabled>Nur über Lootboxen</button>`;
-            }
-        } else {
-            if (owned) {
-                if (selectedCar === i) {
-                    btn = `<button disabled style="opacity:0.6;">Ausgewählt</button>`;
-                } else {
-                    btn = `<button onclick="selectCar(${i})">Auswählen</button>`;
-                }
-            } else {
-                btn = `<button onclick="buyCar(${i})">Kaufen (${c.price} Coins)</button>`;
-            }
-        }
+            //} else {
+                //btn = `<button disabled>Nur über Lootboxen</button>`;
+            //}
+        //} else {
+            //if (owned) {
+                //if (selectedCar === i) {
+                    //btn = `<button disabled style="opacity:0.6;">Ausgewählt</button>`;
+                //} else {
+                    //btn = `<button onclick="selectCar(${i})">Auswählen</button>`;
+                //}
+            //} else {
+                //btn = `<button onclick="buyCar(${i})">Kaufen (${c.price} Coins)</button>`;
+            //}
+        //}
 
         // Farbe je Seltenheit
 let rarityColor = "#fff";
