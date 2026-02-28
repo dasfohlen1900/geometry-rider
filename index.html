@@ -5,7 +5,1748 @@
 <link rel="icon" href="favicon.ico" type="image/x-icon">
 <link rel="apple-touch-icon" href="apple-icon.png" sizes="256x256">
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoRider X</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap');
+
+:root {
+  --neon-cyan: #00f5ff;
+  --neon-pink: #ff006e;
+  --neon-yellow: #ffbe0b;
+  --neon-green: #06ff6e;
+  --bg-dark: #050510;
+  --bg-mid: #0a0a20;
+  --panel-bg: rgba(5,5,20,0.92);
+  --glass: rgba(0,245,255,0.05);
+  --glass-border: rgba(0,245,255,0.15);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg-dark);
+  font-family: 'Rajdhani', sans-serif;
+  overflow: hidden;
+  color: #fff;
+  user-select: none;
+}
+
+/* ── CANVAS ── */
+#gameCanvas {
+  display: block;
+  margin: 0 auto;
+  image-rendering: pixelated;
+}
+
+/* ── HUD ── */
+#hud {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 18px;
+  background: linear-gradient(180deg, rgba(5,5,20,0.9) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 20;
+  font-family: 'Orbitron', monospace;
+}
+
+.hud-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.hud-label {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: rgba(0,245,255,0.5);
+  text-transform: uppercase;
+}
+
+.hud-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 12px var(--neon-cyan);
+  transition: color 0.2s;
+}
+
+.hud-value.coins { color: var(--neon-yellow); text-shadow: 0 0 12px var(--neon-yellow); }
+.hud-value.hs { color: var(--neon-pink); text-shadow: 0 0 12px var(--neon-pink); }
+
+/* ── TOP-RIGHT BUTTONS ── */
+#topButtons {
+  position: fixed;
+  top: 10px; right: 10px;
+  display: flex;
+  gap: 8px;
+  z-index: 30;
+}
+
+.top-btn {
+  padding: 8px 16px;
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  color: var(--neon-cyan);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
+}
+
+.top-btn:hover {
+  background: rgba(0,245,255,0.12);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 16px rgba(0,245,255,0.3);
+}
+
+/* ── OVERLAYS ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5,5,20,0.96);
+  backdrop-filter: blur(12px);
+}
+
+.overlay.hidden { display: none; }
+
+/* ── START SCREEN ── */
+#startScreen {
+  flex-direction: column;
+  text-align: center;
+  gap: 20px;
+}
+
+.game-title {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(36px, 8vw, 72px);
+  font-weight: 900;
+  letter-spacing: 4px;
+  background: linear-gradient(135deg, var(--neon-cyan), var(--neon-pink));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  animation: titlePulse 3s ease-in-out infinite;
+}
+
+@keyframes titlePulse {
+  0%,100% { filter: brightness(1); }
+  50% { filter: brightness(1.3); }
+}
+
+.subtitle {
+  font-size: 14px;
+  letter-spacing: 6px;
+  color: rgba(0,245,255,0.6);
+  text-transform: uppercase;
+}
+
+.start-hint {
+  margin-top: 10px;
+  font-size: 16px;
+  color: rgba(255,255,255,0.5);
+  animation: blink 1.4s ease-in-out infinite;
+}
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+.stats-row {
+  display: flex;
+  gap: 40px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.stat-box {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 14px 24px;
+  text-align: center;
+}
+
+.stat-box .val {
+  font-family: 'Orbitron', monospace;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 12px var(--neon-cyan);
+}
+
+.stat-box .lbl {
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 4px;
+}
+
+/* ── GAME OVER ── */
+#gameOverScreen {
+  flex-direction: column;
+  gap: 16px;
+  text-align: center;
+}
+
+.go-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 56px;
+  font-weight: 900;
+  color: var(--neon-pink);
+  text-shadow: 0 0 30px var(--neon-pink);
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-8px)}
+  75%{transform:translateX(8px)}
+}
+
+.go-score {
+  font-family: 'Orbitron', monospace;
+  font-size: 22px;
+  color: var(--neon-cyan);
+}
+
+.new-hs {
+  font-family: 'Orbitron', monospace;
+  font-size: 14px;
+  color: var(--neon-yellow);
+  text-shadow: 0 0 12px var(--neon-yellow);
+  letter-spacing: 3px;
+  animation: blink 1s infinite;
+}
+
+/* ── BUTTONS ── */
+.btn {
+  padding: 12px 28px;
+  font-family: 'Orbitron', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.1);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.btn:hover::after { opacity: 1; }
+
+.btn-primary {
+  background: linear-gradient(135deg, #00b8cc, #0070ff);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(0,245,255,0.4);
+}
+
+.btn-primary:hover { box-shadow: 0 0 30px rgba(0,245,255,0.6); transform: translateY(-2px); }
+
+.btn-danger {
+  background: linear-gradient(135deg, #ff006e, #aa0040);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(255,0,110,0.4);
+}
+
+.btn-secondary {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  color: rgba(255,255,255,0.7);
+}
+
+/* ── SHOP ── */
+#shopScreen {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+#shopScreen .shop-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--glass-border);
+  background: rgba(0,0,0,0.3);
+  flex-shrink: 0;
+}
+
+.shop-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  background: linear-gradient(135deg, var(--neon-cyan), var(--neon-pink));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.coin-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,190,11,0.1);
+  border: 1px solid rgba(255,190,11,0.3);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-family: 'Orbitron', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--neon-yellow);
+}
+
+.shop-filters {
+  display: flex;
+  gap: 8px;
+  padding: 12px 24px;
+  background: rgba(0,0,0,0.2);
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--glass-border);
+  flex-shrink: 0;
+}
+
+.shop-filters select,
+.shop-filters input {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  color: #fff;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.shop-filters select:focus,
+.shop-filters input:focus {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 8px rgba(0,245,255,0.2);
+}
+
+.shop-filters select option { background: #0a0a20; }
+
+#carList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#carList::-webkit-scrollbar { width: 4px; }
+#carList::-webkit-scrollbar-track { background: transparent; }
+#carList::-webkit-scrollbar-thumb { background: rgba(0,245,255,0.3); border-radius: 2px; }
+
+.car-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+  min-height: 68px;
+}
+
+.car-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--rarity-color, #fff);
+  box-shadow: 0 0 10px var(--rarity-color, #fff);
+}
+
+.car-card:hover {
+  border-color: rgba(0,245,255,0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0,245,255,0.1);
+}
+
+.car-card.selected-card {
+  border-color: var(--neon-green) !important;
+  box-shadow: 0 0 16px rgba(6,255,110,0.2);
+}
+
+.car-preview {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.car-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.car-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.car-rarity {
+  font-size: 12px;
+  letter-spacing: 2px;
+  font-weight: 600;
+  margin-top: 3px;
+  color: var(--rarity-color, #fff);
+}
+
+.car-price {
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  color: var(--neon-yellow);
+  margin-top: 4px;
+}
+
+.car-btn {
+  padding: 6px 12px;
+  font-family: 'Orbitron', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.car-btn.buy {
+  background: linear-gradient(135deg, rgba(0,245,255,0.2), rgba(0,112,255,0.2));
+  border: 1px solid var(--glass-border);
+  color: var(--neon-cyan);
+}
+
+.car-btn.buy:hover {
+  background: linear-gradient(135deg, rgba(0,245,255,0.35), rgba(0,112,255,0.35));
+  box-shadow: 0 0 12px rgba(0,245,255,0.3);
+}
+
+.car-btn.select-car {
+  background: linear-gradient(135deg, rgba(6,255,110,0.2), rgba(0,180,80,0.2));
+  border: 1px solid rgba(6,255,110,0.3);
+  color: var(--neon-green);
+}
+
+.car-btn.selected {
+  background: rgba(6,255,110,0.1);
+  border: 1px solid rgba(6,255,110,0.3);
+  color: rgba(6,255,110,0.5);
+  cursor: default;
+}
+
+.car-btn.locked {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.3);
+  cursor: default;
+  font-size: 8px;
+}
+
+.shop-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-top: 1px solid var(--glass-border);
+  background: rgba(0,0,0,0.3);
+  flex-shrink: 0;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.promo-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.promo-input {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  color: #fff;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-family: 'Orbitron', monospace;
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  width: 140px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.promo-input:focus { border-color: var(--neon-cyan); }
+.promo-input::placeholder { color: rgba(255,255,255,0.2); font-size: 10px; letter-spacing: 1px; }
+
+/* ── LOOTBOX ── */
+#lootboxOverlay {
+  z-index: 60;
+}
+
+.lootbox-anim {
+  width: 200px;
+  height: 200px;
+  position: relative;
+  margin: 0 auto;
+}
+
+.lootbox-box {
+  width: 100%;
+  height: 100%;
+  border-radius: 20px;
+  border: 2px solid var(--neon-cyan);
+  box-shadow: 0 0 40px var(--neon-cyan), inset 0 0 30px rgba(0,245,255,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80px;
+  animation: boxShake 0.3s ease-in-out infinite;
+  background: radial-gradient(circle at 50% 50%, rgba(0,245,255,0.1), transparent);
+}
+
+@keyframes boxShake {
+  0%,100% {transform:rotate(-3deg) scale(1);}
+  50% {transform:rotate(3deg) scale(1.05);}
+}
+
+.lootbox-result {
+  text-align: center;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn { from{opacity:0;transform:scale(0.8)} to{opacity:1;transform:scale(1)} }
+
+.lootbox-car-name {
+  font-family: 'Orbitron', monospace;
+  font-size: 22px;
+  font-weight: 900;
+  margin: 12px 0 6px;
+}
+
+.lootbox-rarity {
+  font-size: 13px;
+  letter-spacing: 3px;
+  margin-bottom: 4px;
+}
+
+/* ── NOTIFICATION TOAST ── */
+#toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: rgba(5,5,20,0.95);
+  border: 1px solid var(--neon-cyan);
+  border-radius: 10px;
+  padding: 12px 24px;
+  font-family: 'Orbitron', monospace;
+  font-size: 13px;
+  color: var(--neon-cyan);
+  box-shadow: 0 0 20px rgba(0,245,255,0.3);
+  z-index: 100;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+  text-align: center;
+  max-width: 400px;
+}
+
+#toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ── SPEED INDICATOR ── */
+#speedBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255,255,255,0.1);
+  z-index: 20;
+  pointer-events: none;
+}
+
+#speedFill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+  box-shadow: 0 0 8px var(--neon-cyan);
+  transition: width 0.3s;
+}
+
+/* ── COMBO ── */
+#comboDisplay {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Orbitron', monospace;
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--neon-yellow);
+  text-shadow: 0 0 20px var(--neon-yellow);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 20;
+}
+
+/* ── MOBILE CONTROLS ── */
+#mobileControls {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  gap: 20px;
+  z-index: 20;
+}
+
+@media (hover: none) {
+  #mobileControls { display: flex; }
+}
+
+.mob-btn {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: rgba(0,245,255,0.1);
+  border: 2px solid rgba(0,245,255,0.3);
+  color: var(--neon-cyan);
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mob-btn:active {
+  background: rgba(0,245,255,0.25);
+  transform: scale(0.9);
+}
+
+/* ── MODAL ── */
+.modal {
+  max-width: 480px;
+  width: 90%;
+  background: var(--bg-mid);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 32px;
+  text-align: center;
+  box-shadow: 0 0 60px rgba(0,245,255,0.1);
+}
+
+.modal h2 {
+  font-family: 'Orbitron', monospace;
+  font-size: 22px;
+  font-weight: 900;
+  margin-bottom: 16px;
+  color: var(--neon-cyan);
+  letter-spacing: 2px;
+}
+
+.modal p {
+  color: rgba(255,255,255,0.6);
+  font-size: 15px;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+</style>
+</head>
+<body>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-item">
+    <span class="hud-label">Score</span>
+    <span class="hud-value" id="hudScore">0</span>
+  </div>
+  <div class="hud-item">
+    <span class="hud-label">Highscore</span>
+    <span class="hud-value hs" id="hudHS">0</span>
+  </div>
+  <div class="hud-item">
+    <span class="hud-label">Coins</span>
+    <span class="hud-value coins" id="hudCoins">0</span>
+  </div>
+</div>
+
+<!-- Buttons oben rechts -->
+<div id="topButtons">
+  <button class="top-btn" onclick="openShop()">⚡ SHOP</button>
+</div>
+
+<!-- CANVAS -->
+<canvas id="gameCanvas"></canvas>
+
+<!-- SPEED BAR -->
+<div id="speedBar"><div id="speedFill"></div></div>
+
+<!-- COMBO DISPLAY -->
+<div id="comboDisplay" id="comboDisplay"></div>
+
+<!-- MOBILE CONTROLS -->
+<div id="mobileControls">
+  <div class="mob-btn" id="jumpBtn">▲</div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- START SCREEN -->
+<div class="overlay" id="startScreen">
+  <div class="game-title">GEORIDER X</div>
+  <div class="subtitle">VELOCITY EDITION</div>
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="val" id="startHS">0</div>
+      <div class="lbl">Highscore</div>
+    </div>
+    <div class="stat-box">
+      <div class="val" style="color:var(--neon-yellow);text-shadow:0 0 12px var(--neon-yellow)" id="startCoins">0</div>
+      <div class="lbl">Coins</div>
+    </div>
+  </div>
+  <div class="start-hint">SPACE / TIPPEN zum Starten</div>
+  <div style="font-size:12px;color:rgba(255,255,255,0.3);letter-spacing:2px;margin-top:8px;">SHOP → S-Taste</div>
+</div>
+
+<!-- GAME OVER SCREEN -->
+<div class="overlay hidden" id="gameOverScreen">
+  <div class="go-title">GAME OVER</div>
+  <div class="go-score" id="goScore">Score: 0</div>
+  <div class="go-score" id="goHS" style="color:var(--neon-pink)">Best: 0</div>
+  <div class="new-hs hidden" id="newHSBadge">🏆 NEUER HIGHSCORE!</div>
+  <div class="go-score" id="goCoinsEarned" style="color:var(--neon-yellow);font-size:16px;"></div>
+  <div style="display:flex;gap:12px;margin-top:8px;">
+    <button class="btn btn-primary" onclick="startGame()">▶ NOCHMAL</button>
+    <button class="btn btn-secondary" onclick="goToStart()">MENU</button>
+  </div>
+  <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:6px;letter-spacing:2px;">R → NOCHMAL</div>
+</div>
+
+<!-- SHOP SCREEN -->
+<div class="overlay hidden" id="shopScreen">
+  <div class="shop-header">
+    <div class="shop-title">⚡ VEHICLE SHOP</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="coin-badge">🪙 <span id="shopCoins">0</span></div>
+      <button class="btn btn-secondary" onclick="closeShop()" style="padding:8px 16px;font-size:11px;">✕ ZURÜCK</button>
+    </div>
+  </div>
+  <div class="shop-filters">
+    <select id="rarityFilter" onchange="renderShop()">
+      <option value="all">Alle Seltenheiten</option>
+      <option value="Milestone">Milestone</option>
+      <option value="Standard">Standard</option>
+      <option value="Selten">Selten</option>
+      <option value="Episch">Episch</option>
+      <option value="Mythisch">Mythisch</option>
+      <option value="Legendär">Legendär</option>
+      <option value="OG">OG</option>
+      <option value="Oktopus">Oktopus</option>
+      <option value="Secret">Secret</option>
+      <option value="Event Car">Event Car</option>
+    </select>
+    <input type="number" id="minPrice" placeholder="Min Coins" oninput="renderShop()" style="width:110px">
+    <input type="number" id="maxPrice" placeholder="Max Coins" oninput="renderShop()" style="width:110px">
+    <input type="text" id="nameSearch" placeholder="🔍 Name…" oninput="renderShop()" style="width:140px">
+  </div>
+  <div id="carList"></div>
+  <div class="shop-footer">
+    <div class="promo-row">
+      <input class="promo-input" id="codeInput" placeholder="XXXX-XXXX" maxlength="9">
+      <button class="btn btn-secondary" onclick="redeemCode()" style="padding:8px 14px;font-size:11px;">EINLÖSEN</button>
+    </div>
+    <button class="btn btn-primary" onclick="openLootbox()" style="padding:10px 20px;font-size:11px;">
+      🎁 LOOTBOX — 1.500 🪙
+    </button>
+  </div>
+</div>
+
+<!-- LOOTBOX OVERLAY -->
+<div class="overlay hidden" id="lootboxOverlay">
+  <div class="modal">
+    <div id="lootboxContent"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+function resizeCanvas() {
+  const maxW = 900, maxH = 450;
+  const w = Math.min(window.innerWidth, maxW);
+  const h = Math.min(window.innerHeight, maxH);
+  canvas.width = w;
+  canvas.height = h;
+}
+resizeCanvas();
+window.addEventListener("resize", () => { resizeCanvas(); BASELINE = canvas.height - 50; });
+
+let BASELINE = canvas.height - 50;
+
+const GRAVITY = 0.55;
+const JUMP_FORCE = -13;
+const PLAYER_W = 42;
+const PLAYER_H = 22;
+const LOOTBOX_PRICE = 1500;
+
+// ═══════════════════════════════════════════════
+// CAR DATA
+// ═══════════════════════════════════════════════
+const RARITY_COLORS = {
+  "Milestone":  "#1ce1ff",
+  "Standard III": "#22cc44", "Standard II": "#22cc44", "Standard I": "#22cc44",
+  "Selten III":  "#2277ff", "Selten II":  "#2277ff", "Selten I":  "#2277ff",
+  "Episch III":  "#aa00ff", "Episch II":  "#aa00ff", "Episch I":  "#aa00ff",
+  "Mythisch III":"#ff3300", "Mythisch II":"#ff3300", "Mythisch I":"#ff3300",
+  "Legendär III":"#ffd700", "Legendär II":"#ffd700", "Legendär I":"#ffd700",
+  "OG":          "#ffd700",
+  "Oktopus III": "#ff8800", "Oktopus II": "#ff8800", "Oktopus I": "#ff8800",
+  "Secret":      "#ff99ff",
+  "Event Car":   "#00ffcc",
+};
+
+const RARITY_MULTI = (r) => {
+  if(/^Standard/.test(r)) return 1;
+  if(/^Selten/.test(r)) return 2;
+  if(/^Episch/.test(r)) return 3;
+  if(/^Mythisch/.test(r)) return 5;
+  if(/^Legendär/.test(r) || r === "OG") return 10;
+  if(/^Oktopus/.test(r)) return 25;
+  if(r === "Secret") return 50;
+  if(r === "Event Car") return 167;
+  return 1;
+};
+
+const cars = [
+  {name:"Greenline Classic", rarity:"Milestone", price:0, color:"#00ff88"},
+  {name:"Urban Runner",  rarity:"Standard III", price:150,  color:"#3af"},
+  {name:"Street Breeze", rarity:"Standard III", price:220,  color:"#ff0"},
+  {name:"Neon Hopper",   rarity:"Standard III", price:300,  color:"#f0f"},
+  {name:"Turbo Rookie",  rarity:"Standard II",  price:380,  color:"#fa0"},
+  {name:"Comet Lite",    rarity:"Standard II",  price:450,  color:"#fff"},
+  {name:"Mint Dash",     rarity:"Standard II",  price:520,  color:"#7f7"},
+  {name:"Pixel Runner",  rarity:"Standard II",  price:580,  color:"#6ff"},
+  {name:"Suntrail",      rarity:"Standard II",  price:640,  color:"#fd0"},
+  {name:"Roadkit Neo",   rarity:"Standard II",  price:700,  color:"#ccc"},
+  {name:"Metro Zip",     rarity:"Standard I",   price:760,  color:"#9cf"},
+  {name:"Sprint Fox",    rarity:"Standard I",   price:820,  color:"#f99"},
+  {name:"Civic Drift",   rarity:"Standard I",   price:900,  color:"#aaa"},
+  {name:"Arrow Hatch",   rarity:"Standard I",   price:980,  color:"#afa"},
+  {name:"Sky Buggy",     rarity:"Standard I",   price:1050, color:"#88f"},
+  {name:"Silver Pulse",  rarity:"Selten III",   price:650,  color:"#ccc"},
+  {name:"Aero Swift",    rarity:"Selten III",   price:720,  color:"#9cf"},
+  {name:"Velo Strider",  rarity:"Selten III",   price:800,  color:"#bfb"},
+  {name:"Quartz Rider",  rarity:"Selten III",   price:920,  color:"#fc9"},
+  {name:"Trail Dancer",  rarity:"Selten III",   price:1040, color:"#f99"},
+  {name:"Chrome Sprint", rarity:"Selten II",    price:1180, color:"#9ff"},
+  {name:"Crystal Edge",  rarity:"Selten II",    price:1300, color:"#cdf"},
+  {name:"Solar Trail S", rarity:"Selten II",    price:1450, color:"#fd6"},
+  {name:"Azure Comet",   rarity:"Selten II",    price:1600, color:"#4af"},
+  {name:"Jade Velocity", rarity:"Selten II",    price:1750, color:"#0fa"},
+  {name:"Copper Flash",  rarity:"Selten I",     price:1900, color:"#c84"},
+  {name:"Night Glider",  rarity:"Selten I",     price:2100, color:"#889"},
+  {name:"Dust Falcon",   rarity:"Selten I",     price:2250, color:"#ddd"},
+  {name:"Storm Dagger",  rarity:"Selten I",     price:2450, color:"#9af"},
+  {name:"Ion Glide",     rarity:"Selten I",     price:2650, color:"#0ff"},
+  {name:"Pyroflare V1",  rarity:"Episch III",   price:1700, color:"#f55"},
+  {name:"Astra Cyclone", rarity:"Episch III",   price:1950, color:"#5af"},
+  {name:"Voltrush EX",   rarity:"Episch III",   price:2200, color:"#5ff"},
+  {name:"Thunder Rift",  rarity:"Episch III",   price:2500, color:"#ccf"},
+  {name:"Nova Phantom",  rarity:"Episch III",   price:2800, color:"#fff"},
+  {name:"Plasma Rider",  rarity:"Episch III",   price:3100, color:"#39f"},
+  {name:"Ignite Spectre",rarity:"Episch II",    price:3450, color:"#f33"},
+  {name:"Cryo Phantom",  rarity:"Episch II",    price:3800, color:"#0ff"},
+  {name:"Lunar Stride",  rarity:"Episch II",    price:4250, color:"#ddd"},
+  {name:"Neon Fang",     rarity:"Episch II",    price:4600, color:"#f0a"},
+  {name:"Hyper Pulse",   rarity:"Episch II",    price:5000, color:"#0ff"},
+  {name:"Void Runner",   rarity:"Episch I",     price:5400, color:"#88aaff"},
+  {name:"Starlight RX",  rarity:"Episch I",     price:5900, color:"#ddf"},
+  {name:"Photon Raptor", rarity:"Episch I",     price:6300, color:"#8ff"},
+  {name:"Tempest Core",  rarity:"Episch I",     price:6800, color:"#f6f"},
+  {name:"Eclipse Wraith",rarity:"Mythisch III",  price:4800, color:"#aa88ff"},
+  {name:"Vortex Ascendant",rarity:"Mythisch III",price:5400,color:"#8df"},
+  {name:"Starforge MK-II",rarity:"Mythisch III", price:6100,color:"#dd0"},
+  {name:"Nebula Phantom",rarity:"Mythisch III",  price:6800,color:"#a0f"},
+  {name:"Pyrocore Zenith",rarity:"Mythisch II",  price:7600,color:"#f00"},
+  {name:"Solarstorm X",  rarity:"Mythisch II",   price:8500,color:"#ff5"},
+  {name:"Ion Tempest",   rarity:"Mythisch II",   price:9400,color:"#9ff"},
+  {name:"Radiant Howler",rarity:"Mythisch II",   price:10300,color:"#fff"},
+  {name:"Cosmic Revenant",rarity:"Mythisch II",  price:11000,color:"#93f"},
+  {name:"Solar Abyss",   rarity:"Mythisch I",    price:12500,color:"#f80"},
+  {name:"Astral Leviathan",rarity:"Mythisch I",  price:14200,color:"#48f"},
+  {name:"Nova Tyrant",   rarity:"Mythisch I",    price:16000,color:"#f3f"},
+  {name:"Gravemind X",   rarity:"Mythisch I",    price:18000,color:"#cc88ff"},
+  {name:"Void Seraph",   rarity:"Mythisch I",    price:20500,color:"#0af"},
+  {name:"Storm Herald",  rarity:"Mythisch I",    price:23000,color:"#ff0"},
+  {name:"Obsidian Monarch",rarity:"Legendär III",price:11800,color:"#aaaaff"},
+  {name:"Quantum Sovereign",rarity:"Legendär III",price:13400,color:"#acf"},
+  {name:"Titanfall Ascendant",rarity:"Legendär III",price:15100,color:"#ff9"},
+  {name:"Aurelion Vanguard",rarity:"Legendär II",price:16900,color:"#ffd700"},
+  {name:"Eternal Starborn",rarity:"Legendär II", price:18800,color:"#fff"},
+  {name:"Crownbreaker",  rarity:"Legendär II",   price:22000,color:"#ffd700"},
+  {name:"Infinity Monarch",rarity:"Legendär II", price:25500,color:"#fff"},
+  {name:"Void Emperor",  rarity:"Legendär II",   price:30000,color:"#ccccff"},
+  {name:"Solar Imperator",rarity:"Legendär II",  price:34000,color:"#fa0"},
+  {name:"Astral King",   rarity:"Legendär II",   price:38000,color:"#88f"},
+  {name:"Neutron Lord",  rarity:"Legendär I",    price:42000,color:"#0ff"},
+  {name:"Celestial Tyrant",rarity:"Legendär I",  price:47000,color:"#fff"},
+  {name:"Radiance Apex", rarity:"Legendär I",    price:52000,color:"#ffd"},
+  {name:"Oblivion Prime",rarity:"Legendär I",    price:58000,color:"#aaaacc"},
+  {name:"Crownfall Omega",rarity:"Legendär I",   price:64000,color:"#f66"},
+  {name:"Okto-Wave",     rarity:"Oktopus III",   price:20500,color:"#6af"},
+  {name:"Inkjet Surge",  rarity:"Oktopus III",   price:23800,color:"#48c"},
+  {name:"Kraken Drift",  rarity:"Oktopus III",   price:25500,color:"#24a"},
+  {name:"Okto-Prime",    rarity:"Oktopus III",   price:31000,color:"#04f"},
+  {name:"Tentacle Overdrive",rarity:"Oktopus II",price:42000,color:"#7af"},
+  {name:"Abyssal Inkstorm",rarity:"Oktopus II",  price:50000,color:"#246"},
+  {name:"Deepsea Monarch",rarity:"Oktopus II",   price:60000,color:"#08f"},
+  {name:"Levi Ink-X",    rarity:"Oktopus II",    price:72000,color:"#0af"},
+  {name:"Kraken Nova",   rarity:"Oktopus II",    price:86000,color:"#09f"},
+  {name:"Void Tentator", rarity:"Oktopus I",     price:100000,color:"#4466ff"},
+  {name:"Nebula II",     rarity:"Secret", price:0, color:"#a0e"},
+  {name:"AaronGirl Rider",rarity:"Secret",price:0, color:"#ffaacc"},
+  {name:"Admin Rider",   rarity:"Secret", price:0, color:"#a0e"},
+  {name:"Dev Console",   rarity:"Secret", price:0, color:"#0f0"},
+  {name:"Null Rider",    rarity:"Secret", price:0, color:"#999"},
+  {name:"2026",          rarity:"OG",     price:2026, color:"#ffa"},
+  {name:"Dicker Villobeit",rarity:"Event Car",price:10000000000,color:"#ff4444"},
+  {name:"2027 Prototype",rarity:"Event Car",price:2027, color:"#0ff"},
+  {name:"Wintercore 26", rarity:"Event Car",price:2600, color:"#ccf"},
+  {name:"Frost Rally",   rarity:"OG",     price:3000, color:"#9ff"},
+  {name:"PauleRider III",rarity:"OG",     price:28092012, color:"#ff4444"},
+];
+
+// ═══════════════════════════════════════════════
+// SAVE DATA — sanitized helpers
+// ═══════════════════════════════════════════════
+function safeParse(key, fallback) {
+  try { const v = JSON.parse(localStorage.getItem(key)); return v !== null ? v : fallback; }
+  catch { return fallback; }
+}
+
+let coins = Math.max(0, parseInt(localStorage.getItem("coins") || "0") || 0);
+let highscore = Math.max(0, parseInt(localStorage.getItem("riderHighscore") || "0") || 0);
+let ownedCars = (() => {
+  let arr = safeParse("ownedCars", [0]);
+  if (!Array.isArray(arr)) return [0];
+  arr = arr.map(n => parseInt(n)).filter(n => !isNaN(n) && n >= 0 && n < cars.length);
+  return arr.length ? arr : [0];
+})();
+let selectedCar = (() => {
+  let v = parseInt(localStorage.getItem("selectedCar") || "0");
+  return (isNaN(v) || v < 0 || v >= cars.length) ? 0 : v;
+})();
+let redeemedCodes = safeParse("redeemedCodes", []);
+if (!Array.isArray(redeemedCodes)) redeemedCodes = [];
+
+function save() {
+  localStorage.setItem("coins", coins);
+  localStorage.setItem("riderHighscore", highscore);
+  localStorage.setItem("ownedCars", JSON.stringify(ownedCars));
+  localStorage.setItem("selectedCar", selectedCar);
+  localStorage.setItem("redeemedCodes", JSON.stringify(redeemedCodes));
+}
+
+// ═══════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════
+let state = "start";
+let score = 0;
+let obstacles = [];
+let coinObjs = [];
+let particles = [];
+let bgStars = Array.from({length:120}, () => ({
+  x: Math.random()*canvas.width,
+  y: Math.random()*canvas.height,
+  size: Math.random()*1.5+0.5,
+  speed: 0.15+Math.random()*0.4,
+  brightness: 0.3+Math.random()*0.7
+}));
+
+let speed = 5;
+let frameCount = 0;
+let obstacleInterval = 90;
+let lastObstacle = 0;
+let coinsThisRun = 0;
+let combo = 0; // platform clears
+let comboTimer = 0;
+
+let player = {
+  x: 70, y: 0, vy: 0,
+  onGround: false,
+  jumpHeld: false,
+  trail: [],
+  angle: 0
+};
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+function toast(msg, color = "#00f5ff") {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.style.borderColor = color;
+  el.style.color = color;
+  el.style.boxShadow = `0 0 20px ${color}40`;
+  el.classList.add("show");
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove("show"), 2800);
+}
+
+function formatNum(n) {
+  if (n >= 1e9) return (n/1e9).toFixed(1)+"B";
+  if (n >= 1e6) return (n/1e6).toFixed(1)+"M";
+  if (n >= 1e3) return (n/1e3).toFixed(1)+"K";
+  return Math.floor(n).toString();
+}
+
+function updateHUD() {
+  document.getElementById("hudScore").textContent = Math.floor(score);
+  document.getElementById("hudHS").textContent = Math.floor(highscore);
+  document.getElementById("hudCoins").textContent = formatNum(coins);
+}
+
+// ═══════════════════════════════════════════════
+// GAME LOGIC
+// ═══════════════════════════════════════════════
+function resetGame() {
+  BASELINE = canvas.height - 50;
+  player.x = 70;
+  player.y = BASELINE - PLAYER_H;
+  player.vy = 0;
+  player.onGround = false;
+  player.jumpHeld = false;
+  player.trail = [];
+  player.angle = 0;
+  obstacles = [];
+  coinObjs = [];
+  particles = [];
+  score = 0;
+  speed = 5;
+  frameCount = 0;
+  lastObstacle = 0;
+  obstacleInterval = 90;
+  coinsThisRun = 0;
+  combo = 0;
+  comboTimer = 0;
+}
+
+function spawnObstacle() {
+  const r = Math.random();
+  if (r < 0.35) {
+    const h = Math.random()*70+25;
+    obstacles.push({x:canvas.width, y:BASELINE-h, w:38, h, type:"block"});
+  } else if (r < 0.6) {
+    const w = 90, h = 18;
+    const y = BASELINE - (Math.random()*110+30);
+    obstacles.push({x:canvas.width, y, w, h, type:"ramp"});
+  } else if (r < 0.78) {
+    const w = 110+Math.random()*60;
+    const y = BASELINE - (140+Math.random()*160);
+    obstacles.push({x:canvas.width, y, w, h:12, type:"platform"});
+  } else if (r < 0.9) {
+    const w = 38+Math.random()*28;
+    const h = 22+Math.random()*30;
+    const y = 16+Math.random()*90;
+    obstacles.push({x:canvas.width, y, w, h, type:"topBlock"});
+  } else {
+    // moving obstacle
+    const h = 40+Math.random()*40;
+    obstacles.push({x:canvas.width, y:BASELINE-h, w:32, h, type:"block", moving:true, vy:1.5+Math.random()*1.5, dir:1});
+  }
+}
+
+function spawnCoin() {
+  if (Math.random() < 0.018) {
+    coinObjs.push({
+      x: canvas.width,
+      y: BASELINE - 80 - Math.random()*140,
+      r: 10,
+      pulse: Math.random()*Math.PI*2
+    });
+  }
+}
+
+function spawnParticle(x, y, color, count=6) {
+  for (let i = 0; i < count; i++) {
+    const a = Math.random()*Math.PI*2;
+    const s = 1.5+Math.random()*3;
+    particles.push({x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s-1, life:1, maxLife:1, color, size:3+Math.random()*4});
+  }
+}
+
+function update() {
+  if (state !== "play") return;
+  frameCount++;
+
+  // speed ramp
+  speed = 5 + Math.floor(score/30)*0.4;
+  speed = Math.min(speed, 18);
+
+  // spawn obstacles
+  if (frameCount - lastObstacle > obstacleInterval) {
+    spawnObstacle();
+    lastObstacle = frameCount;
+    obstacleInterval = Math.max(45, 90 - score * 0.3);
+  }
+  spawnCoin();
+
+  // player physics
+  player.vy += GRAVITY;
+  player.y += player.vy;
+
+  // clamp top
+  if (player.y < 0) { player.y = 0; player.vy = 0; }
+
+  // trail
+  player.trail.push({x: player.x + PLAYER_W/2, y: player.y + PLAYER_H/2});
+  if (player.trail.length > 14) player.trail.shift();
+
+  player.onGround = false;
+
+  // obstacle collision
+  for (const obs of obstacles) {
+    if (obs.moving) {
+      obs.y += obs.vy * obs.dir;
+      if (obs.y <= 20 || obs.y+obs.h >= BASELINE) obs.dir *= -1;
+    }
+
+    if (obs.type === "block" || obs.type === "topBlock") {
+      if (player.x < obs.x+obs.w && player.x+PLAYER_W > obs.x &&
+          player.y < obs.y+obs.h && player.y+PLAYER_H > obs.y) {
+        spawnParticle(player.x+PLAYER_W/2, player.y+PLAYER_H/2, cars[selectedCar].color, 12);
+        endGame();
+        return;
+      }
+    } else if (obs.type === "ramp") {
+      const slope = obs.h / obs.w;
+      const relX = player.x + PLAYER_W - obs.x;
+      if (relX >= 0 && relX <= obs.w && player.x < obs.x+obs.w) {
+        const topY = obs.y + obs.h - relX * slope;
+        if (player.y+PLAYER_H > topY && player.y+PLAYER_H < topY+25 && player.vy >= 0) {
+          player.y = topY - PLAYER_H;
+          player.vy = 0;
+          player.onGround = true;
+        }
+      }
+    } else if (obs.type === "platform") {
+      if (player.x+PLAYER_W > obs.x && player.x < obs.x+obs.w &&
+          player.y+PLAYER_H > obs.y && player.y+PLAYER_H < obs.y+25 && player.vy >= 0) {
+        player.y = obs.y - PLAYER_H;
+        player.vy = 0;
+        player.onGround = true;
+      }
+    }
+  }
+
+  // ground
+  if (player.y + PLAYER_H >= BASELINE) {
+    player.y = BASELINE - PLAYER_H;
+    player.vy = 0;
+    player.onGround = true;
+  }
+
+  // lean angle
+  player.angle += (-player.vy * 0.04 - player.angle) * 0.2;
+
+  // move / cull obstacles
+  obstacles = obstacles.filter(o => o.x + o.w > -20);
+  obstacles.forEach(o => o.x -= speed);
+
+  // coins
+  coinObjs.forEach(c => {
+    c.x -= speed;
+    c.pulse += 0.08;
+  });
+  const multi = RARITY_MULTI(cars[selectedCar].rarity);
+  coinObjs = coinObjs.filter(c => {
+    if (c.x + c.r < 0) return false;
+    if (player.x < c.x+c.r && player.x+PLAYER_W > c.x-c.r &&
+        player.y < c.y+c.r && player.y+PLAYER_H > c.y-c.r) {
+      const earned = Math.floor(1 * multi);
+      coins += earned;
+      coinsThisRun += earned;
+      spawnParticle(c.x, c.y, "#ffbe0b", 5);
+      return false;
+    }
+    return true;
+  });
+
+  // particles
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.15;
+    p.life -= 0.03;
+  });
+  particles = particles.filter(p => p.life > 0);
+
+  // combo timer
+  if (comboTimer > 0) {
+    comboTimer--;
+    if (comboTimer === 0) {
+      combo = 0;
+      document.getElementById("comboDisplay").style.opacity = 0;
+    }
+  }
+
+  score += 0.015;
+  updateHUD();
+
+  // speed bar
+  document.getElementById("speedFill").style.width = Math.min(100, (speed-5)/13*100) + "%";
+
+  // save coins periodically
+  if (frameCount % 120 === 0) save();
+}
+
+function endGame() {
+  state = "gameover";
+  const isNewHS = score > highscore;
+  if (isNewHS) highscore = Math.floor(score);
+  save();
+  document.getElementById("goScore").textContent = `Score: ${Math.floor(score)}`;
+  document.getElementById("goHS").textContent = `Highscore: ${Math.floor(highscore)}`;
+  document.getElementById("newHSBadge").classList.toggle("hidden", !isNewHS);
+  document.getElementById("goCoinsEarned").textContent = coinsThisRun > 0 ? `+${formatNum(coinsThisRun)} 🪙 verdient` : "";
+  document.getElementById("gameOverScreen").classList.remove("hidden");
+  updateHUD();
+}
+
+// ═══════════════════════════════════════════════
+// DRAW
+// ═══════════════════════════════════════════════
+function drawBG() {
+  // deep space gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  grad.addColorStop(0, "#03030f");
+  grad.addColorStop(1, "#080824");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // stars
+  bgStars.forEach(s => {
+    ctx.fillStyle = `rgba(255,255,255,${s.brightness})`;
+    ctx.fillRect(s.x, s.y, s.size, s.size);
+    s.x -= s.speed * (speed/5);
+    if (s.x < 0) { s.x = canvas.width; s.y = Math.random()*canvas.height; }
+  });
+
+  // grid lines (moving)
+  const gridOff = (frameCount * speed * 0.3) % 60;
+  ctx.strokeStyle = "rgba(0,245,255,0.04)";
+  ctx.lineWidth = 1;
+  for (let x = -gridOff; x < canvas.width; x += 60) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+
+  // ground line
+  ctx.strokeStyle = "rgba(0,245,255,0.5)";
+  ctx.lineWidth = 2;
+  ctx.shadowColor = "#00f5ff";
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.moveTo(0, BASELINE); ctx.lineTo(canvas.width, BASELINE);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+}
+
+function drawObstacles() {
+  obstacles.forEach(obs => {
+    ctx.save();
+    if (obs.type === "block" || obs.type === "topBlock") {
+      const grd = ctx.createLinearGradient(obs.x, obs.y, obs.x+obs.w, obs.y+obs.h);
+      grd.addColorStop(0, "#ff1a44");
+      grd.addColorStop(1, "#880022");
+      ctx.fillStyle = grd;
+      ctx.shadowColor = "#ff1a44";
+      ctx.shadowBlur = 10;
+      ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = "#ff4466";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(obs.x+1, obs.y+1, obs.w-2, obs.h-2);
+
+      // danger stripes
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = "#000";
+      for (let i = 0; i < obs.h; i += 10) {
+        ctx.fillRect(obs.x, obs.y+i, obs.w, 5);
+      }
+      ctx.globalAlpha = 1;
+    } else if (obs.type === "ramp") {
+      ctx.shadowColor = "#ffdd00";
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = "#cc9900";
+      ctx.beginPath();
+      ctx.moveTo(obs.x, obs.y+obs.h);
+      ctx.lineTo(obs.x+obs.w, obs.y);
+      ctx.lineTo(obs.x+obs.w, obs.y+obs.h);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "#ffee44";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else if (obs.type === "platform") {
+      ctx.shadowColor = "#0066ff";
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = "#0044cc";
+      ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.strokeStyle = "#44aaff";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      // glowing edge
+      ctx.strokeStyle = "rgba(68,170,255,0.5)";
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(obs.x, obs.y); ctx.lineTo(obs.x+obs.w, obs.y); ctx.stroke();
+    }
+    ctx.restore();
+  });
+}
+
+function drawCoins() {
+  coinObjs.forEach(c => {
+    const pulse = Math.sin(c.pulse) * 2;
+    ctx.save();
+    ctx.shadowColor = "#ffbe0b";
+    ctx.shadowBlur = 14;
+    const grad = ctx.createRadialGradient(c.x-2, c.y-2, 1, c.x, c.y, c.r+pulse);
+    grad.addColorStop(0, "#ffe566");
+    grad.addColorStop(1, "#cc8800");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, c.r+pulse, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = "#ffee88";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // $ symbol
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.font = "bold 10px Verdana";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("₡", c.x, c.y+0.5);
+    ctx.restore();
+  });
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 6;
+    ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+    ctx.restore();
+  });
+}
+
+function drawPlayer() {
+  const car = cars[selectedCar] || cars[0];
+  const color = car.color;
+  const cx = player.x + PLAYER_W/2;
+  const cy = player.y + PLAYER_H/2;
+
+  // trail
+  for (let i = 0; i < player.trail.length; i++) {
+    const t = player.trail[i];
+    const alpha = (i / player.trail.length) * 0.35;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 4;
+    const s = (i / player.trail.length) * PLAYER_W * 0.7;
+    ctx.fillRect(t.x - s/2, t.y - PLAYER_H*0.3, s, PLAYER_H*0.6);
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(player.angle);
+
+  // glow
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 18;
+
+  // body
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.roundRect(-PLAYER_W/2+4, -PLAYER_H/2, PLAYER_W-8, PLAYER_H, 4);
+  ctx.fill();
+
+  // cockpit
+  ctx.fillStyle = "rgba(255,255,255,0.15)";
+  ctx.beginPath();
+  ctx.roundRect(-4, -PLAYER_H/2+2, 14, PLAYER_H/2+2, 3);
+  ctx.fill();
+
+  // nose
+  ctx.fillStyle = color;
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  ctx.moveTo(PLAYER_W/2-4, -PLAYER_H/2+5);
+  ctx.lineTo(PLAYER_W/2+6, 0);
+  ctx.lineTo(PLAYER_W/2-4, PLAYER_H/2-5);
+  ctx.fill();
+
+  ctx.shadowBlur = 0;
+
+  // wheels
+  ctx.fillStyle = "#1a1a2e";
+  ctx.beginPath(); ctx.arc(-12, PLAYER_H/2, 7, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(14, PLAYER_H/2, 7, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(-12, PLAYER_H/2, 7, 0, Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(14, PLAYER_H/2, 7, 0, Math.PI*2); ctx.stroke();
+
+  // engine glow (left side)
+  ctx.fillStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 12 + Math.sin(frameCount*0.3)*4;
+  ctx.beginPath();
+  ctx.ellipse(-PLAYER_W/2, 0, 5, 3, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function gameLoop() {
+  update();
+
+  drawBG();
+  drawObstacles();
+  drawCoins();
+  drawParticles();
+  if (state === "play" || state === "gameover") drawPlayer();
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ═══════════════════════════════════════════════
+// STATE MANAGEMENT
+// ═══════════════════════════════════════════════
+function startGame() {
+  document.getElementById("startScreen").classList.add("hidden");
+  document.getElementById("gameOverScreen").classList.add("hidden");
+  resetGame();
+  state = "play";
+}
+
+function goToStart() {
+  document.getElementById("gameOverScreen").classList.add("hidden");
+  document.getElementById("startScreen").classList.remove("hidden");
+  document.getElementById("startHS").textContent = Math.floor(highscore);
+  document.getElementById("startCoins").textContent = formatNum(coins);
+  state = "start";
+}
+
+function jump() {
+  if (state === "start") { startGame(); return; }
+  if (state === "gameover") { startGame(); return; }
+  if (state === "play" && player.onGround) {
+    player.vy = JUMP_FORCE;
+    player.onGround = false;
+    spawnParticle(player.x+PLAYER_W/2, player.y+PLAYER_H, cars[selectedCar].color, 4);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// SHOP
+// ═══════════════════════════════════════════════
+function openShop() {
+  const wasPlaying = state === "play";
+  if (wasPlaying) state = "paused";
+  document.getElementById("shopScreen").classList.remove("hidden");
+  document.getElementById("shopCoins").textContent = formatNum(coins);
+  renderShop();
+  document.getElementById("shopScreen")._wasPlaying = wasPlaying;
+}
+
+function closeShop() {
+  document.getElementById("shopScreen").classList.add("hidden");
+  const wasPlaying = document.getElementById("shopScreen")._wasPlaying;
+  if (wasPlaying) state = "play";
+  else state = "start";
+}
+
+function renderShop() {
+  const rarityF = document.getElementById("rarityFilter").value;
+  const minP = Number(document.getElementById("minPrice").value) || 0;
+  const maxP = Number(document.getElementById("maxPrice").value) || Infinity;
+  const search = document.getElementById("nameSearch").value.toLowerCase();
+
+  const list = cars.filter((c, i) => {
+    const rarityMatch = rarityF === "all" || c.rarity.startsWith(rarityF) || c.rarity === rarityF;
+    const priceMatch = c.price >= minP && c.price <= maxP;
+    const nameMatch = c.name.toLowerCase().includes(search);
+    return rarityMatch && priceMatch && nameMatch;
+  });
+
+  document.getElementById("shopCoins").textContent = formatNum(coins);
+
+  const container = document.getElementById("carList");
+  container.innerHTML = list.map((c, fi) => {
+    const i = cars.indexOf(c);
+    const owned = ownedCars.includes(i);
+    const rc = RARITY_COLORS[c.rarity] || "#fff";
+    const isSelected = selectedCar === i;
+
+    let btn = "";
+    if (c.rarity === "Secret" && !owned) {
+      btn = `<button class="car-btn locked" disabled>SECRET</button>`;
+    } else if (owned) {
+      btn = isSelected
+        ? `<button class="car-btn selected" disabled>✓ AKTIV</button>`
+        : `<button class="car-btn select-car" onclick="selectCar(${i})">WÄHLEN</button>`;
+    } else {
+      btn = `<button class="car-btn buy" onclick="buyCar(${i})">
+               ${formatNum(c.price)} 🪙
+             </button>`;
+    }
+
+    return `<div class="car-card ${isSelected ? 'selected-card' : ''}" style="--rarity-color:${rc}">
+      <div class="car-preview" style="background:${c.color}22;border:1px solid ${c.color}44;">
+        <span style="color:${c.color};font-size:22px;">▶</span>
+      </div>
+      <div class="car-info">
+        <div class="car-name">${c.name}</div>
+        <div class="car-rarity">${c.rarity}</div>
+        ${!owned && c.rarity !== "Secret" ? `<div class="car-price">${formatNum(c.price)} 🪙</div>` : ''}
+      </div>
+      ${btn}
+    </div>`;
+  }).join("");
+}
+
+function buyCar(id) {
+  const c = cars[id];
+  if (!c) return;
+  if (ownedCars.includes(id)) { toast("Bereits besessen!"); return; }
+  if (coins < c.price) { toast(`Zu wenig Coins! (${formatNum(c.price)} benötigt)`, "#ff006e"); return; }
+  coins -= c.price;
+  ownedCars.push(id);
+  save();
+  toast(`${c.name} gekauft! 🚗`, "#06ff6e");
+  renderShop();
+}
+
+function selectCar(id) {
+  selectedCar = id;
+  save();
+  renderShop();
+  toast(`${cars[id].name} ausgewählt!`, cars[id].color);
+}
+
+// ═══════════════════════════════════════════════
+// LOOTBOX
+// ═══════════════════════════════════════════════
+function openLootbox() {
+  if (coins < LOOTBOX_PRICE) { toast("Zu wenig Coins für eine Lootbox!", "#ff006e"); return; }
+  coins -= LOOTBOX_PRICE;
+  save();
+
+  const overlay = document.getElementById("lootboxOverlay");
+  overlay.classList.remove("hidden");
+  document.getElementById("lootboxContent").innerHTML = `
+    <div class="lootbox-anim"><div class="lootbox-box">🎁</div></div>
+    <p style="font-family:'Orbitron',monospace;font-size:16px;margin-top:16px;letter-spacing:2px;color:rgba(255,255,255,0.6)">ÖFFNE...</p>
+  `;
+
+  setTimeout(() => {
+    const roll = Math.random() * 100;
+    let pool;
+    if (roll < 30)      pool = cars.filter(c => c.rarity.startsWith("Standard"));
+    else if (roll < 50) pool = cars.filter(c => c.rarity.startsWith("Selten"));
+    else if (roll < 67) pool = cars.filter(c => c.rarity.startsWith("Episch"));
+    else if (roll < 77) pool = cars.filter(c => c.rarity.startsWith("Mythisch"));
+    else if (roll < 88) pool = cars.filter(c => c.rarity.startsWith("Legendär") || c.rarity === "OG");
+    else                pool = cars.filter(c => c.rarity.startsWith("Oktopus") || c.rarity === "Secret");
+
+    if (!pool.length) pool = cars.filter(c => c.rarity.startsWith("Standard"));
+
+    const car = pool[Math.floor(Math.random() * pool.length)];
+    const idx = cars.indexOf(car);
+    const rc = RARITY_COLORS[car.rarity] || "#fff";
+    let msg = "", sub = "";
+
+    if (!ownedCars.includes(idx)) {
+      ownedCars.push(idx);
+      save();
+      msg = `<div class="lootbox-car-name" style="color:${car.color};text-shadow:0 0 20px ${car.color}">${car.name}</div>`;
+      sub = `<div class="lootbox-rarity" style="color:${rc}">${car.rarity}</div><div style="color:rgba(255,255,255,0.5);font-size:13px;margin-bottom:16px;">Neues Fahrzeug freigeschaltet!</div>`;
+    } else {
+      const bonus = Math.floor(Math.random() * 2401) + 400;
+      coins += bonus;
+      save();
+      msg = `<div class="lootbox-car-name" style="color:var(--neon-yellow)">${formatNum(bonus)} 🪙</div>`;
+      sub = `<div style="color:rgba(255,255,255,0.5);font-size:13px;margin-bottom:16px;">${car.name} bereits besessen – Coins erhalten!</div>`;
+    }
+
+    document.getElementById("lootboxContent").innerHTML = `
+      <div class="lootbox-result">
+        <div style="font-size:60px">🎉</div>
+        ${msg}${sub}
+        <button class="btn btn-primary" onclick="closeLootbox()">WEITER</button>
+      </div>
+    `;
+    document.getElementById("shopCoins").textContent = formatNum(coins);
+  }, 1400);
+}
+
+function closeLootbox() {
+  document.getElementById("lootboxOverlay").classList.add("hidden");
+  renderShop();
+}
+
+// ═══════════════════════════════════════════════
+// PROMO CODES
+// ═══════════════════════════════════════════════
+// Codes are checked via a simple client-side map.
+// We store redeemed codes in localStorage to prevent re-use per device.
+const PROMO_CODES = {
+  "STAR-2026": { coins: 500 },
+  "NEON-RUSH": { coins: 1000 },
+  "VELO-BOSS": { coins: 2500 },
+  "FREE-RIDE": { coins: 300 },
+};
+
+document.getElementById("codeInput").addEventListener("input", function() {
+  let v = this.value.toUpperCase().replace(/[^A-Z0-9-]/g, "");
+  this.value = v.slice(0, 9);
+});
+
+function redeemCode() {
+  const raw = document.getElementById("codeInput").value.trim().toUpperCase();
+  if (!raw) { toast("Bitte Code eingeben!", "#ff006e"); return; }
+
+  // normalize: insert dash if missing
+  const code = raw.length === 8 && !raw.includes("-")
+    ? raw.slice(0,4)+"-"+raw.slice(4)
+    : raw;
+
+  if (redeemedCodes.includes(code)) { toast("Dieser Code wurde bereits verwendet!", "#ff006e"); return; }
+  const reward = PROMO_CODES[code];
+  if (!reward) { toast("Ungültiger Code!", "#ff006e"); return; }
+
+  let msg = "Code eingelöst!";
+  if (reward.coins) {
+    coins += reward.coins;
+    msg += ` +${formatNum(reward.coins)} Coins`;
+  }
+  if (reward.carId != null && !ownedCars.includes(reward.carId)) {
+    ownedCars.push(reward.carId);
+    msg += ` + ${cars[reward.carId].name}`;
+  }
+
+  redeemedCodes.push(code);
+  save();
+  document.getElementById("codeInput").value = "";
+  toast(msg, "#06ff6e");
+  renderShop();
+}
+
+// ═══════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════
+document.addEventListener("keydown", e => {
+  if (e.code === "Space" || e.code === "ArrowUp") {
+    e.preventDefault();
+    jump();
+  }
+  if (e.code === "KeyR" && state === "gameover") startGame();
+  if (e.code === "KeyS" && state === "start") openShop();
+  if (e.code === "Escape") {
+    if (!document.getElementById("shopScreen").classList.contains("hidden")) closeShop();
+    if (!document.getElementById("lootboxOverlay").classList.contains("hidden")) closeLootbox();
+  }
+});
+
+document.addEventListener("touchstart", e => {
+  if (document.getElementById("shopScreen").classList.contains("hidden") &&
+      document.getElementById("lootboxOverlay").classList.contains("hidden")) {
+    jump();
+  }
+}, {passive:true});
+
+document.getElementById("jumpBtn").addEventListener("touchstart", e => {
+  e.stopPropagation();
+  jump();
+}, {passive:true});
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+document.getElementById("startHS").textContent = Math.floor(highscore);
+document.getElementById("startCoins").textContent = formatNum(coins);
+updateHUD();
+gameLoop();
+</script>
+</body>
+</html>
 <title>Mini Geometry Rider</title>
 <style>
 body { margin:0; overflow:hidden; background:#111; font-family:Verdana,sans-serif; cursor: url("cursor.png") 4 4, auto; }
