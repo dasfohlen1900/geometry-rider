@@ -1033,7 +1033,8 @@ let player = {
   onGround: false,
   jumpHeld: false,
   trail: [],
-  angle: 0
+  angle: 0,
+  jumpsLeft: 2
 };
 
 // ═══════════════════════════════════════════════
@@ -1075,6 +1076,7 @@ function resetGame() {
   player.jumpHeld = false;
   player.trail = [];
   player.angle = 0;
+  player.jumpsLeft = 2;
   obstacles = [];
   coinObjs = [];
   particles = [];
@@ -1184,6 +1186,7 @@ function update() {
           player.y = topY - PLAYER_H;
           player.vy = 0;
           player.onGround = true;
+          player.jumpsLeft = 2;
         }
       }
     } else if (obs.type === "platform") {
@@ -1192,6 +1195,7 @@ function update() {
         player.y = obs.y - PLAYER_H;
         player.vy = 0;
         player.onGround = true;
+        player.jumpsLeft = 2;
       }
     }
   }
@@ -1201,6 +1205,7 @@ function update() {
     player.y = BASELINE - PLAYER_H;
     player.vy = 0;
     player.onGround = true;
+    player.jumpsLeft = 2;
   }
 
   // lean angle
@@ -1501,9 +1506,10 @@ function goToStart() {
 function jump() {
   if (state === "start") { startGame(); return; }
   if (state === "gameover") { startGame(); return; }
-  if (state === "play" && player.onGround) {
+  if (state === "play" && player.jumpsLeft > 0) {
     player.vy = JUMP_FORCE;
     player.onGround = false;
+    player.jumpsLeft--;
     spawnParticle(player.x+PLAYER_W/2, player.y+PLAYER_H, cars[selectedCar].color, 4);
   }
 }
