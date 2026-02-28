@@ -392,7 +392,8 @@ body{background:var(--bg);font-family:'Rajdhani',sans-serif;overflow:hidden;colo
         <div style="color:rgba(255,255,255,.4);font-size:12px;letter-spacing:2px;margin-bottom:6px;">AKTUELLE REBIRTHS</div>
         <div class="rebirth-count" id="rebirthCount">0</div>
         <div class="rebirth-bonus" id="rebirthBonus">Kein Bonus aktiv</div>
-        <div class="rebirth-req" id="rebirthReq">Voraussetzung: Score ≥ 500</div>
+        <div class="rebirth-req" id="rebirthReq"></div>
+        <div id="rebirthNextPreview" style="font-size:12px;color:rgba(255,255,255,.25);font-family:'Orbitron',monospace;margin-top:4px;letter-spacing:1px;min-height:18px;"></div>
         <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px;align-items:center;">
           <button class="btn btn-gold" id="rebirthBtn" onclick="doRebirth()" style="padding:14px 32px;font-size:14px;">🔥 REBIRTH AUSFÜHREN</button>
           <div style="font-size:12px;color:rgba(255,255,255,.3);">Score & Coins werden zurückgesetzt.<br>Fahrzeuge & Upgrades bleiben erhalten.</div>
@@ -800,7 +801,15 @@ function renderUpgrades() {
 // ═══════════════════════════════════════════════════════
 // REBIRTH
 // ═══════════════════════════════════════════════════════
-const REBIRTH_SCORE_REQ = 500;
+// Rebirth requirements per level
+function getRebirthReq(n) {
+  if (n === 0) return { coins: 0,     score: 0  }; // erster Rebirth: frei
+  if (n === 1) return { coins: 500,   score: 15 };
+  if (n <= 8)  return { coins: 500 + (n-1)*500, score: 10 + n*5 }; // 1000/20, 1500/25 … 4000/45
+  if (n <= 14) return { coins: 5000 + (n-8)*2000, score: 40 + (n-7)*10 }; // 7000/60, 9000/70 …
+  return null; // n===15 → alle Autos
+}
+
 function rebirthMultiplier() { return 1 + rebirthCount * 0.5; }
 
 function renderRebirth() {
@@ -808,29 +817,73 @@ function renderRebirth() {
   document.getElementById("rebirthBonus").textContent = rebirthCount > 0
     ? `Coin-Multiplikator: ×${rebirthMultiplier().toFixed(1)}`
     : "Kein Bonus aktiv";
-  document.getElementById("rebirthReq").textContent = `Voraussetzung: Score ≥ ${REBIRTH_SCORE_REQ + rebirthCount*200}`;
-  const req = REBIRTH_SCORE_REQ + rebirthCount * 200;
-  const canRebirth = highscore >= req;
+
+  const maxRebirth = 15;
+  let canRebirth = false;
+  let reqText = "";
+
+  if (rebirthCount >= maxRebirth) {
+    reqText = "Maximum erreicht! (15/15)";
+    canRebirth = false;
+  } else if (rebirthCount === maxRebirth - 1) {
+    // Letzter Rebirth: alle Autos besitzen
+    const allOwned = cars.every((_, i) => ownedCars.includes(i));
+    canRebirth = allOwned;
+    reqText = allOwned
+      ? "✅ Alle Autos besessen!"
+      : `Besitze alle ${cars.length} Fahrzeuge (${ownedCars.length}/${cars.length})`;
+  } else {
+    const req = getRebirthReq(rebirthCount);
+    const coinOk  = coins >= req.coins;
+    const scoreOk = highscore >= req.score;
+    canRebirth = coinOk && scoreOk;
+    const coinStr  = req.coins > 0 ? `${coinOk?"✅":"❌"} ${formatNum(req.coins)} 🪙 (du: ${formatNum(coins)})` : "";
+    const scoreStr = req.score > 0 ? `${scoreOk?"✅":"❌"} Highscore ≥ ${req.score} (du: ${Math.floor(highscore)})` : "";
+    reqText = [coinStr, scoreStr].filter(Boolean).join("   |   ") || "Keine Voraussetzungen";
+  }
+
+  document.getElementById("rebirthReq").innerHTML = reqText;
   const btn = document.getElementById("rebirthBtn");
   btn.disabled = !canRebirth;
   btn.style.opacity = canRebirth ? "1" : "0.4";
+
+  // Show next rebirth preview
+  const next = rebirthCount + 1;
+  if (next <= maxRebirth) {
+    const nextReq = next === maxRebirth ? null : getRebirthReq(next);
+    const previewEl = document.getElementById("rebirthNextPreview");
+    if (previewEl) {
+      previewEl.textContent = next === maxRebirth
+        ? `Rebirth ${next}: Alle Fahrzeuge besitzen`
+        : nextReq
+          ? `Rebirth ${next}: ${nextReq.coins>0?formatNum(nextReq.coins)+" 🪙":""} ${nextReq.score>0?"| Score ≥"+nextReq.score:""}`
+          : "";
+    }
+  }
 }
 
 function doRebirth() {
-  const req = REBIRTH_SCORE_REQ + rebirthCount * 200;
-  if (highscore < req) { toast(`Highscore ${req} benötigt!`, "#ff006e"); return; }
+  const maxRebirth = 15;
+  if (rebirthCount >= maxRebirth) { toast("Maximales Rebirth erreicht!", "#ff006e"); return; }
+
+  let canRebirth = false;
+  if (rebirthCount === maxRebirth - 1) {
+    canRebirth = cars.every((_, i) => ownedCars.includes(i));
+  } else {
+    const req = getRebirthReq(rebirthCount);
+    canRebirth = coins >= req.coins && highscore >= req.score;
+  }
+  if (!canRebirth) { toast("Voraussetzungen nicht erfüllt!", "#ff006e"); return; }
+
+  const nextMulti = (rebirthMultiplier() + 0.5).toFixed(1);
   showConfirm("🔥 REBIRTH AUSFÜHREN?",
-    `Score (${Math.floor(highscore)}) und Coins (${formatNum(coins)}) werden auf 0 zurückgesetzt.\nFahrzeuge & Upgrades bleiben erhalten.\nDu erhältst ×${(rebirthMultiplier()+0.5).toFixed(1)} Coin-Multiplikator!`,
+    `Coins und Highscore werden auf 0 zurückgesetzt.\nFahrzeuge & Upgrades bleiben erhalten.\nNeuer Multiplikator: ×${nextMulti}`,
     () => {
       rebirthCount++;
-      coins = 0;
-      highscore = 0;
-      sfxPowerup();
-      saveAll();
+      coins = 0; highscore = 0;
+      sfxPowerup(); saveAll();
       toast(`🔥 REBIRTH ${rebirthCount}! Multiplikator: ×${rebirthMultiplier().toFixed(1)}`, "#ff7700");
-      renderRebirth();
-      updatePanelCoins();
-      updateHUD();
+      renderRebirth(); updatePanelCoins(); updateHUD();
     }
   );
 }
@@ -838,36 +891,88 @@ function doRebirth() {
 // ═══════════════════════════════════════════════════════
 // DAILY CHALLENGES
 // ═══════════════════════════════════════════════════════
-const CHALLENGE_DEFS = [
-  { id:"score200",  name:"SPEED RUNNER",    desc:"Erreiche Score 200 in einem Run",    target:200,  reward:500,  type:"score" },
-  { id:"coins50",   name:"COIN COLLECTOR",  desc:"Sammle 50 Coins in einem Run",       target:50,   reward:300,  type:"runCoins" },
-  { id:"jumps20",   name:"JUMP KING",       desc:"Springe 20 mal in einem Run",        target:20,   reward:250,  type:"runJumps" },
-  { id:"runs3",     name:"PRACTITIONER",    desc:"Starte 3 Runs heute",                target:3,    reward:400,  type:"runCount" },
-  { id:"score500",  name:"VELOCITY GOD",    desc:"Erreiche Score 500",                 target:500,  reward:1500, type:"score" },
+// ── CHALLENGE POOL (20 verschiedene) ──
+const CHALLENGE_POOL = [
+  { id:"score100",   name:"ROOKIE RUN",       desc:"Erreiche Score 100 in einem Run",         target:100,  reward:200,  type:"score" },
+  { id:"score200",   name:"SPEED RUNNER",      desc:"Erreiche Score 200 in einem Run",         target:200,  reward:400,  type:"score" },
+  { id:"score350",   name:"TURBO RIDER",       desc:"Erreiche Score 350 in einem Run",         target:350,  reward:700,  type:"score" },
+  { id:"score500",   name:"VELOCITY GOD",      desc:"Erreiche Score 500 in einem Run",         target:500,  reward:1200, type:"score" },
+  { id:"score750",   name:"ULTRA RACER",       desc:"Erreiche Score 750 in einem Run",         target:750,  reward:2000, type:"score" },
+  { id:"coins25",    name:"COIN GRABBER",      desc:"Sammle 25 Coins in einem Run",            target:25,   reward:150,  type:"runCoins" },
+  { id:"coins50",    name:"COIN COLLECTOR",    desc:"Sammle 50 Coins in einem Run",            target:50,   reward:280,  type:"runCoins" },
+  { id:"coins100",   name:"COIN MASTER",       desc:"Sammle 100 Coins in einem Run",           target:100,  reward:550,  type:"runCoins" },
+  { id:"coins200",   name:"GOLD RUSH",         desc:"Sammle 200 Coins in einem Run",           target:200,  reward:1000, type:"runCoins" },
+  { id:"jumps10",    name:"HOPPER",            desc:"Springe 10 mal in einem Run",             target:10,   reward:150,  type:"runJumps" },
+  { id:"jumps20",    name:"JUMP KING",         desc:"Springe 20 mal in einem Run",             target:20,   reward:250,  type:"runJumps" },
+  { id:"jumps40",    name:"JUMP LEGEND",       desc:"Springe 40 mal in einem Run",             target:40,   reward:500,  type:"runJumps" },
+  { id:"jumps75",    name:"AERIAL ACE",        desc:"Springe 75 mal in einem Run",             target:75,   reward:900,  type:"runJumps" },
+  { id:"runs2",      name:"WARM UP",           desc:"Starte 2 Runs heute",                     target:2,    reward:200,  type:"runCount" },
+  { id:"runs3",      name:"PRACTITIONER",      desc:"Starte 3 Runs heute",                     target:3,    reward:350,  type:"runCount" },
+  { id:"runs5",      name:"DEDICATED",         desc:"Starte 5 Runs heute",                     target:5,    reward:600,  type:"runCount" },
+  { id:"runs10",     name:"GRINDING",          desc:"Starte 10 Runs heute",                    target:10,   reward:1200, type:"runCount" },
+  { id:"combo_s_j",  name:"COMBO STARTER",     desc:"Score 150 UND 15 Sprünge in einem Run",   target:1,    reward:500,  type:"combo_sj",  comboA:{type:"score",target:150}, comboB:{type:"runJumps",target:15} },
+  { id:"combo_c_r",  name:"COIN SPRINTER",     desc:"75 Coins UND Score 200 in einem Run",     target:1,    reward:700,  type:"combo_cr",  comboA:{type:"runCoins",target:75}, comboB:{type:"score",target:200} },
+  { id:"no_die",     name:"SURVIVOR",          desc:"Starte heute 4 Runs (Schild hilft!)",     target:4,    reward:800,  type:"runCount" },
 ];
+
+// Deterministischer Tages-Seed → immer gleiche 5 Challenges pro Tag
+function getDailySeed() {
+  const d = new Date(); return d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
+}
+function seededRandom(seed) {
+  let s = seed;
+  return () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
+}
+function getTodayChallenges() {
+  const rng = seededRandom(getDailySeed());
+  const pool = [...CHALLENGE_POOL];
+  const chosen = [];
+  while (chosen.length < 5 && pool.length) {
+    const idx = Math.floor(rng() * pool.length);
+    chosen.push(pool.splice(idx, 1)[0]);
+  }
+  return chosen;
+}
+
 let challengeData = safeParse("challengeData", {});
+let todayChallenges = [];
 
 function getTodayKey() { return new Date().toISOString().slice(0,10); }
 
 function initChallenges() {
   const today = getTodayKey();
+  todayChallenges = getTodayChallenges();
   if (challengeData.day !== today) {
     challengeData = { day: today, progress:{}, claimed:[] };
-    CHALLENGE_DEFS.forEach(c => { challengeData.progress[c.id] = 0; });
     saveAll();
   }
-  if (!challengeData.progress) {
-    challengeData.progress = {};
-    CHALLENGE_DEFS.forEach(c => { challengeData.progress[c.id] = 0; });
-  }
-  if (!challengeData.claimed) challengeData.claimed = [];
+  if (!challengeData.progress) challengeData.progress = {};
+  if (!challengeData.claimed)  challengeData.claimed = [];
 }
 
 function updateChallengeProgress(type, amount) {
   initChallenges();
-  CHALLENGE_DEFS.forEach(c => {
+  todayChallenges.forEach(c => {
     if (c.type === type) {
       challengeData.progress[c.id] = (challengeData.progress[c.id]||0) + amount;
+    }
+    // combo: track sub-goals separately
+    if (c.comboA && c.comboA.type === type) {
+      const key = c.id+"_a";
+      challengeData.progress[key] = (challengeData.progress[key]||0) + amount;
+    }
+    if (c.comboB && c.comboB.type === type) {
+      const key = c.id+"_b";
+      challengeData.progress[key] = (challengeData.progress[key]||0) + amount;
+    }
+  });
+  // resolve combos
+  todayChallenges.forEach(c => {
+    if (c.comboA && c.comboB) {
+      const a = challengeData.progress[c.id+"_a"]||0;
+      const b = challengeData.progress[c.id+"_b"]||0;
+      if (a >= c.comboA.target && b >= c.comboB.target)
+        challengeData.progress[c.id] = 1;
     }
   });
   saveAll();
@@ -875,26 +980,35 @@ function updateChallengeProgress(type, amount) {
 
 function setChallengeProgress(type, value) {
   initChallenges();
-  CHALLENGE_DEFS.forEach(c => {
-    if (c.type === type) {
+  todayChallenges.forEach(c => {
+    if (c.type === type)
       challengeData.progress[c.id] = Math.max(challengeData.progress[c.id]||0, value);
+    if (c.comboA && c.comboA.type === type)
+      challengeData.progress[c.id+"_a"] = Math.max(challengeData.progress[c.id+"_a"]||0, value);
+    if (c.comboB && c.comboB.type === type)
+      challengeData.progress[c.id+"_b"] = Math.max(challengeData.progress[c.id+"_b"]||0, value);
+  });
+  todayChallenges.forEach(c => {
+    if (c.comboA && c.comboB) {
+      const a = challengeData.progress[c.id+"_a"]||0;
+      const b = challengeData.progress[c.id+"_b"]||0;
+      if (a >= c.comboA.target && b >= c.comboB.target)
+        challengeData.progress[c.id] = 1;
     }
   });
 }
 
 function claimChallenge(id) {
-  const def = CHALLENGE_DEFS.find(c=>c.id===id);
+  const def = todayChallenges.find(c=>c.id===id);
   if (!def) return;
   if (challengeData.claimed.includes(id)) return;
   const prog = challengeData.progress[id]||0;
   if (prog < def.target) { toast("Noch nicht abgeschlossen!", "#ff006e"); return; }
   coins += def.reward;
   challengeData.claimed.push(id);
-  saveAll();
-  sfxAch();
-  toast(`✅ ${def.name} abgeschlossen! +${formatNum(def.reward)} 🪙`, "#06ff6e");
-  renderChallenges();
-  updatePanelCoins();
+  saveAll(); sfxAch();
+  toast(`✅ ${def.name} — +${formatNum(def.reward)} 🪙`, "#06ff6e");
+  renderChallenges(); updatePanelCoins();
 }
 
 function renderChallenges() {
@@ -903,24 +1017,39 @@ function renderChallenges() {
   const hLeft = Math.floor(msLeft/3600000);
   const mLeft = Math.floor((msLeft%3600000)/60000);
   document.getElementById("challengeReset").textContent = `Reset in ${hLeft}h ${mLeft}m`;
-  document.getElementById("challengeList").innerHTML = CHALLENGE_DEFS.map(def => {
-    const prog = Math.min(challengeData.progress[def.id]||0, def.target);
-    const pct = (prog/def.target*100).toFixed(0);
-    const done = prog >= def.target;
+
+  document.getElementById("challengeList").innerHTML = todayChallenges.map(def => {
+    const prog  = Math.min(challengeData.progress[def.id]||0, def.target);
+    const pct   = (prog/def.target*100).toFixed(0);
+    const done  = prog >= def.target;
     const claimed = challengeData.claimed.includes(def.id);
+
+    // combo sub-progress display
+    let comboInfo = "";
+    if (def.comboA && def.comboB) {
+      const a = Math.min(challengeData.progress[def.id+"_a"]||0, def.comboA.target);
+      const b = Math.min(challengeData.progress[def.id+"_b"]||0, def.comboB.target);
+      comboInfo = `<div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:2px;">
+        ${def.comboA.type==="score"?"Score":def.comboA.type==="runCoins"?"Coins":"Sprünge"}: ${a}/${def.comboA.target} &nbsp;|&nbsp;
+        ${def.comboB.type==="score"?"Score":def.comboB.type==="runCoins"?"Coins":"Sprünge"}: ${b}/${def.comboB.target}
+      </div>`;
+    }
+
     return `<div class="ch-card ${claimed||done?'ch-done':''}">
       <div class="ch-header">
         <div class="ch-name">${claimed?'✅ ':done?'🎁 ':''} ${def.name}</div>
         <div class="ch-reward">+${formatNum(def.reward)} 🪙</div>
       </div>
       <div class="ch-desc">${def.desc}</div>
+      ${comboInfo}
       <div class="ch-prog"><div class="ch-prog-fill" style="width:${pct}%"></div></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
         <div style="font-size:12px;color:rgba(255,255,255,.4);font-family:'Orbitron',monospace;">${prog}/${def.target}</div>
         ${done && !claimed
           ? `<button class="btn btn-gold" style="padding:5px 12px;font-size:10px;" onclick="claimChallenge('${def.id}')">ABHOLEN</button>`
-          : claimed ? `<div style="font-size:11px;color:var(--green);font-family:'Orbitron',monospace;">ERHALTEN</div>`
-          : ``
+          : claimed
+            ? `<div style="font-size:11px;color:var(--green);font-family:'Orbitron',monospace;">✓ ERHALTEN</div>`
+            : ``
         }
       </div>
     </div>`;
