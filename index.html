@@ -503,56 +503,68 @@ window.addEventListener("resize", resizeCanvas);
 // ═══════════════════════════════════════════════════════
 // AUDIO ENGINE
 // ═══════════════════════════════════════════════════════
-let audioCtx = null;
-function getAudioCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
+// ── SETTINGS (init early so audio can use it) ──
+let settings = { sfx:true, music:false, volume:70, particles:true, shake:true };
+const _savedSettings = (() => { try { return JSON.parse(localStorage.getItem("settings"))||{}; } catch{return{};} })();
+Object.assign(settings, _savedSettings);
+
+// ── AUDIO ENGINE ──
+let _ac = null;
+function ac() {
+  if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
+  if (_ac.state === 'suspended') _ac.resume();
+  return _ac;
 }
 
 function playTone(freq, type, duration, vol=0.3, detune=0) {
   if (!settings.sfx) return;
   try {
-    const ac = getAudioCtx();
-    const o = ac.createOscillator();
-    const g = ac.createGain();
-    o.connect(g); g.connect(ac.destination);
-    o.type = type; o.frequency.value = freq; o.detune.value = detune;
-    g.gain.setValueAtTime(vol * (settings.volume/100), ac.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + duration);
-    o.start(); o.stop(ac.currentTime + duration);
-  } catch(e){}
+    const ctx = ac();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = type;
+    o.frequency.value = freq;
+    if (detune) o.detune.value = detune;
+    const v = Math.max(0.001, vol * (settings.volume / 100));
+    g.gain.setValueAtTime(v, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    o.start(ctx.currentTime);
+    o.stop(ctx.currentTime + duration);
+  } catch(e) {}
 }
 
-function sfxJump()   { playTone(300,'sine',.12,.25); playTone(500,'sine',.08,.15); }
-function sfxJump2()  { playTone(450,'sine',.12,.3); playTone(700,'triangle',.1,.2); }
-function sfxCoin()   { playTone(880,'sine',.07,.2); setTimeout(()=>playTone(1100,'sine',.07,.15),60); }
-function sfxDie()    { playTone(150,'sawtooth',.4,.35); playTone(100,'square',.5,.25,-200); }
-function sfxPowerup(){ playTone(600,'sine',.1,.3); setTimeout(()=>playTone(800,'sine',.1,.25),80); setTimeout(()=>playTone(1000,'sine',.15,.2),160); }
-function sfxAch()    { [440,550,660,880].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',.2,.3),i*80)); }
-function sfxBuy()    { playTone(400,'sine',.1,.25); setTimeout(()=>playTone(500,'sine',.1,.2),90); }
+function sfxJump()    { playTone(280,'sine',.13,.28); playTone(460,'sine',.09,.14); }
+function sfxJump2()   { playTone(420,'triangle',.13,.32); playTone(680,'sine',.1,.18); }
+function sfxCoin()    { playTone(900,'sine',.06,.22); setTimeout(()=>playTone(1200,'sine',.08,.16),55); }
+function sfxDie()     { playTone(160,'sawtooth',.35,.38); setTimeout(()=>playTone(90,'square',.45,.28),60); }
+function sfxPowerup() { [600,800,1050].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',.13,.28),i*90)); }
+function sfxAch()     { [440,550,660,880].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',.18,.28),i*85)); }
+function sfxBuy()     { playTone(380,'sine',.1,.26); setTimeout(()=>playTone(520,'sine',.12,.2),85); }
 
-// Simple music loop
-let musicNodes = [];
+// ── MUSIC ──
 let musicPlaying = false;
 function startMusic() {
   if (!settings.music || musicPlaying) return;
   musicPlaying = true;
-  const ac = getAudioCtx();
-  const notes = [130.81,146.83,164.81,174.61,196,220,246.94];
-  let t = ac.currentTime;
+  const scale = [130.81, 146.83, 164.81, 196, 220, 246.94, 261.63];
   function scheduleNote() {
-    if (!settings.music) { musicPlaying=false; return; }
-    const note = notes[Math.floor(Math.random()*notes.length)];
-    const o = ac.createOscillator();
-    const g = ac.createGain();
-    o.connect(g); g.connect(ac.destination);
-    o.type = 'triangle'; o.frequency.value = note;
-    g.gain.setValueAtTime((settings.volume/100)*0.08, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t+0.4);
-    o.start(t); o.stop(t+0.4);
-    musicNodes.push(o);
-    t += 0.25 + Math.random()*0.15;
-    setTimeout(scheduleNote, 200);
+    if (!musicPlaying || !settings.music) { musicPlaying = false; return; }
+    try {
+      const ctx = ac();
+      const note = scale[Math.floor(Math.random() * scale.length)];
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'triangle';
+      o.frequency.value = note;
+      const v = Math.max(0.001, (settings.volume / 100) * 0.07);
+      g.gain.setValueAtTime(v, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      o.start(ctx.currentTime);
+      o.stop(ctx.currentTime + 0.35);
+    } catch(e) {}
+    setTimeout(scheduleNote, 260 + Math.random() * 140);
   }
   scheduleNote();
 }
@@ -726,9 +738,7 @@ let lbName = localStorage.getItem("lbName") || "Spieler";
 let leaderboard = safeParse("leaderboard",[]);
 if (!Array.isArray(leaderboard)) leaderboard = [];
 
-let settings = { sfx:true, music:false, volume:70, particles:true, shake:true };
-const savedSettings = safeParse("settings", {});
-Object.assign(settings, savedSettings);
+// settings already initialized above
 
 // ═══════════════════════════════════════════════════════
 // UPGRADES SYSTEM
