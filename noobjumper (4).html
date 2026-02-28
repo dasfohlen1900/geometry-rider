@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Noob Jumper - Perfect Controls</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Inter', sans-serif; touch-action: none; }
+        #progress-container { position: absolute; top: 0; left: 0; width: 100%; height: 24px; background: rgba(255,255,255,0.05); z-index: 20; backdrop-filter: blur(5px); }
+        #progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); transition: width 0.4s ease; display: flex; align-items: center; justify-content: center; }
+        #progress-text { color: white; font-size: 11px; font-weight: 800; letter-spacing: 0.05em; pointer-events: none; z-index: 21; }
+        .glass-ui { background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; color: white; z-index: 10; }
+        #ui-left { position: absolute; top: 40px; left: 15px; min-width: 100px; }
+        #lives-ui { font-size: 18px; color: #ff4d4d; letter-spacing: 2px; display: block; }
+        #death-ui { font-size: 12px; color: #aaa; margin-top: 5px; display: block; }
+        #timer-ui { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); text-align: center; border: 1px solid rgba(0,255,100,0.3); }
+        #time-display { color: #00ff88; font-weight: 600; font-size: 22px; }
+        #stage-info { position: absolute; top: 40px; right: 15px; text-align: right; }
+        #joystick-container { position: absolute; bottom: 30px; left: 30px; width: 100px; height: 100px; background: rgba(255,255,255,0.05); border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); }
+        #joystick-knob { width: 44px; height: 44px; background: rgba(255,255,255,0.3); border-radius: 50%; position: absolute; left: 28px; top: 28px; }
+        #jump-button { position: absolute; bottom: 30px; right: 30px; width: 90px; height: 90px; background: rgba(255,50,50,0.4); border: 2px solid rgba(255,255,255,0.5); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; user-select: none; }
+    </style>
+</head>
+<body>
+    <div id="progress-container"><div id="progress-bar"><span id="progress-text">0% COMPLETE</span></div></div>
+    <div id="ui-left" class="glass-ui">
+        <span id="lives-ui">♥♥♥</span>
+        <span id="death-ui">DEATHS: 0</span>
+    </div>
+    <div id="timer-ui" class="glass-ui"><div id="time-display">00:00.00</div></div>
+    <div id="stage-info" class="glass-ui"><span id="stage-num">01/50</span></div>
+    <div id="joystick-container"><div id="joystick-knob"></div></div>
+    <div id="jump-button">JUMP</div>
+
+    <script type="importmap"> { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } } </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const light = new THREE.DirectionalLight(0xffffff, 1.3);
+        light.position.set(30, 100, 30); scene.add(light);
+        scene.add(new THREE.AmbientLight(0x707070));
+
+        const stageColors = Array.from({length: 50}, (_, i) => new THREE.Color(`hsl(${(i * 137) % 360}, 70%, 50%)`));
+
+        // --- NOOB ---
+        const noob = new THREE.Group();
+        const torso = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.9, 0.5), new THREE.MeshStandardMaterial({ color: 0x0055FF }));
+        torso.position.y = 0.85; noob.add(torso);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.65, 0.65), new THREE.MeshStandardMaterial({ color: 0xFFD700 }));
+        head.position.y = 0.75; torso.add(head);
+        
+        const armLGroup = new THREE.Group(); armLGroup.position.set(-0.55, 0.3, 0); torso.add(armLGroup);
+        const armL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.7, 0.22), new THREE.MeshStandardMaterial({ color: 0xFFD700 })); armL.position.y = -0.3; armLGroup.add(armL);
+        const armRGroup = armLGroup.clone(); armRGroup.position.x = 0.55; torso.add(armRGroup);
+
+        const legLGroup = new THREE.Group(); legLGroup.position.set(-0.25, -0.45, 0); torso.add(legLGroup);
+        const legL = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.7, 0.35), new THREE.MeshStandardMaterial({ color: 0x22AA22 })); legL.position.y = -0.3; legLGroup.add(legL);
+        const legRGroup = legLGroup.clone(); legRGroup.position.x = 0.25; torso.add(legRGroup);
+        
+        noob.position.set(0, 3, 0);
+        scene.add(noob);
+
+        // --- STATE ---
+        let lives = 3, deaths = 0, lastCheckpoint = new THREE.Vector3(0, 3, 0), currentStageNum = 1;
+        let startTime = null, gameFinished = false, walkCycle = 0;
+
+        function updateUI() { 
+            document.getElementById('lives-ui').innerText = "♥".repeat(lives);
+            document.getElementById('death-ui').innerText = `DEATHS: ${deaths}`;
+            document.getElementById('stage-num').innerText = `${currentStageNum.toString().padStart(2, '0')}/50`;
+            const pct = Math.floor((currentStageNum / 50) * 100);
+            document.getElementById('progress-bar').style.width = `${pct}%`;
+            document.getElementById('progress-text').innerText = `${pct}% COMPLETE`;
+            scene.background = stageColors[currentStageNum-1].clone().multiplyScalar(0.12);
+        }
+
+        // --- WORLD ---
+        const platforms = [], spikes = [];
+        let cx = 0, cy = 0;
+        for (let i = 1; i <= 50; i++) {
+            const cpSize = i === 1 ? 15 : (i <= 10 ? 8 : 6); // Riesen Start-Plattform
+            createPlatform(cx, cy, 0, cpSize, cpSize, 0xFFFFFF, true, i);
+            cx += cpSize/2 + 3;
+            if(i < 50) {
+                for (let j = 0; j < 5; j++) {
+                    let pS = i <= 10 ? 7 : (i <= 30 ? 5 : 2.8);
+                    cy += i <= 10 ? 0.8 : 1.2; cx += i <= 10 ? 3.5 : 4.5;
+                    createPlatform(cx, cy, (Math.random()-0.5)*(i>=30?6:3), pS, pS, stageColors[i-1], false, i);
+                }
+                cx += 5;
+                createPlatform(cx, cy, 0, 6, 6, 0xFFFFFF, true, i); // Spike-Check
+                cx += 4;
+                const bL = 15;
+                createPlatform(cx + bL/2, cy, 0, bL, 3, 0x111111, false, i);
+                for (let s = 0; s < 6; s++) createSpike(cx + 3 + s * 2.3, cy, (s % 2 === 0 ? 0.6 : -0.6));
+                cx += bL + 6;
+            }
+        }
+        function createPlatform(x,y,z,w,d,color,isC,idx) {
+            const p = new THREE.Mesh(new THREE.BoxGeometry(w,0.5,d), new THREE.MeshStandardMaterial({color}));
+            p.position.set(x,y,z); p.userData = { isC, idx }; scene.add(p); platforms.push(p);
+        }
+        function createSpike(x,y,z) {
+            const s = new THREE.Mesh(new THREE.ConeGeometry(0.4,1.2,8), new THREE.MeshStandardMaterial({color:0xFF2222}));
+            s.position.set(x,y+0.6,z); scene.add(s); spikes.push(s);
+        }
+
+        // --- CONTROLS ---
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enablePan = false; camera.position.set(-15, 12, 15);
+        let velocityY = 0, isJ = false, reqJ = false, keys = {}, joy = { x: 0, y: 0 };
+        window.onkeydown = (e) => { keys[e.code] = true; if(!startTime) startTime = performance.now(); };
+        window.onkeyup = (e) => keys[e.code] = false;
+        
+        const jc = document.getElementById('joystick-container'), jk = document.getElementById('joystick-knob');
+        jc.onpointermove = (e) => { if (e.buttons > 0) {
+            const r = jc.getBoundingClientRect(), dx = e.clientX-(r.left+50), dy = e.clientY-(r.top+50);
+            const d = Math.min(35, Math.sqrt(dx*dx+dy*dy)), a = Math.atan2(dy, dx);
+            jk.style.transform = `translate(${Math.cos(a)*d}px, ${Math.sin(a)*d}px)`;
+            joy.x = (Math.cos(a)*d)/35; joy.y = (Math.sin(a)*d)/35;
+            if(!startTime) startTime = performance.now();
+        }};
+        jc.onpointerup = () => { jk.style.transform = `translate(0,0)`; joy.x = 0; joy.y = 0; };
+        document.getElementById('jump-button').onpointerdown = (e) => { e.preventDefault(); reqJ = true; if(!startTime) startTime = performance.now(); };
+
+        function update() {
+            if (gameFinished) return;
+            
+            // --- DER FIX: RICHTUNGS-VEKTOR BASIEREND AUF KAMERA ---
+            const moveDir = new THREE.Vector3();
+            const forward = new THREE.Vector3();
+            camera.getWorldDirection(forward);
+            forward.y = 0; forward.normalize();
+            
+            const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0), forward).negate();
+            
+            let inputX = 0, inputZ = 0;
+            if (keys['KeyW'] || keys['ArrowUp'] || joy.y < -0.2) inputZ += 1;
+            if (keys['KeyS'] || keys['ArrowDown'] || joy.y > 0.2) inputZ -= 1;
+            if (keys['KeyA'] || keys['ArrowLeft'] || joy.x < -0.2) inputX -= 1;
+            if (keys['KeyD'] || keys['ArrowRight'] || joy.x > 0.2) inputX += 1;
+
+            if (inputX !== 0 || inputZ !== 0) {
+                moveDir.addScaledVector(forward, inputZ).addScaledVector(right, inputX).normalize();
+                noob.position.addScaledVector(moveDir, 0.25);
+                noob.rotation.y = Math.atan2(moveDir.x, moveDir.z);
+                
+                walkCycle += 0.3;
+                armLGroup.rotation.x = Math.sin(walkCycle) * 0.8;
+                const armR = noob.getObjectByName("armR"); // placeholder if needed
+                torso.children[2].rotation.x = -Math.sin(walkCycle) * 0.8; // ArmR
+                legLGroup.rotation.x = -Math.sin(walkCycle) * 0.8;
+                legRGroup.rotation.x = Math.sin(walkCycle) * 0.8;
+                torso.position.y = 0.85 + Math.abs(Math.sin(walkCycle)) * 0.06;
+            } else {
+                walkCycle += 0.05;
+                torso.position.y = 0.85 + Math.sin(walkCycle) * 0.02;
+            }
+
+            // Springen
+            if (isJ) {
+                const angle = velocityY > 0 ? -Math.PI + 0.8 : -0.3;
+                armLGroup.rotation.x = THREE.MathUtils.lerp(armLGroup.rotation.x, angle, 0.15);
+                torso.children[2].rotation.x = THREE.MathUtils.lerp(torso.children[2].rotation.x, angle, 0.15);
+            }
+            if ((keys['Space'] || keys['KeyJ'] || reqJ) && !isJ) { velocityY = 0.38; isJ = true; reqJ = false; }
+            velocityY -= 0.015; noob.position.y += velocityY;
+
+            // Kollision
+            spikes.forEach(s => { if (noob.position.distanceTo(s.position) < 0.85) { deaths++; lives--; noob.position.copy(lastCheckpoint); velocityY=0; updateUI(); } });
+            platforms.forEach(p => {
+                const hw = p.geometry.parameters.width/2+0.35, hd = p.geometry.parameters.depth/2+0.35;
+                if (Math.abs(noob.position.x-p.position.x)<hw && Math.abs(noob.position.z-p.position.z)<hd && noob.position.y-0.7 <= p.position.y+0.25 && noob.position.y-0.7 >= p.position.y-0.5) {
+                    if (velocityY <= 0) {
+                        noob.position.y = p.position.y+0.75; velocityY = 0; isJ = false;
+                        if (p.userData.isC) { 
+                            lastCheckpoint.set(p.position.x, p.position.y+3, p.position.z); lives = 3; 
+                            if(p.userData.idx === 50 && noob.position.x > cx - 10) { gameFinished = true; alert("SIEG!"); }
+                        }
+                        if (p.userData.idx && p.userData.idx !== currentStageNum) { currentStageNum = p.userData.idx; updateUI(); }
+                    }
+                }
+            });
+            const off = new THREE.Vector3().subVectors(camera.position, controls.target);
+            controls.target.copy(noob.position); camera.position.copy(noob.position).add(off); controls.update();
+            if (noob.position.y < -35) { deaths++; lives--; noob.position.copy(lastCheckpoint); velocityY=0; updateUI(); }
+        }
+
+        updateUI();
+        function animate() {
+            requestAnimationFrame(animate); update();
+            if (startTime && !gameFinished) {
+                const diff = performance.now() - startTime;
+                const m = Math.floor(diff/60000).toString().padStart(2,'0');
+                const s = Math.floor((diff%60000)/1000).toString().padStart(2,'0');
+                const ms = Math.floor((diff%1000)/10).toString().padStart(2,'0');
+                document.getElementById('time-display').innerText = `${m}:${s}.${ms}`;
+            }
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
