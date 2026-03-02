@@ -1665,13 +1665,14 @@ function selectCar(id){
 // ═══════════════════════════════════════════════════════
 // Lootbox rarity tiers with chances and styling
 const LOOTBOX_TIERS = [
-  { label:"STANDARD",  chance:30, color:"#22cc44", glow:"#22cc4466", filter: c=>c.rarity.startsWith("Standard") },
-  { label:"SELTEN",    chance:20, color:"#2277ff", glow:"#2277ff66", filter: c=>c.rarity.startsWith("Selten") },
-  { label:"EPISCH",    chance:17, color:"#aa00ff", glow:"#aa00ff66", filter: c=>c.rarity.startsWith("Episch") },
-  { label:"MYTHISCH",  chance:10, color:"#ff3300", glow:"#ff330066", filter: c=>c.rarity.startsWith("Mythisch") },
-  { label:"LEGENDÄR",  chance:11, color:"#ffd700", glow:"#ffd70066", filter: c=>c.rarity.startsWith("Legendär")||c.rarity==="OG" },
-  { label:"OKTOPUS",   chance: 9, color:"#ff8800", glow:"#ff880066", filter: c=>c.rarity.startsWith("Oktopus") },
-  { label:"SECRET",    chance: 3, color:"#ff99ff", glow:"#ff99ff66", filter: c=>c.rarity==="Secret" },
+  { label:"STANDARD",  chance:28, color:"#22cc44", glow:"#22cc4466", filter: c=>c.rarity.startsWith("Standard"),                coinMin:100,  coinMax:400  },
+  { label:"SELTEN",    chance:19, color:"#2277ff", glow:"#2277ff66", filter: c=>c.rarity.startsWith("Selten"),                   coinMin:300,  coinMax:800  },
+  { label:"EPISCH",    chance:16, color:"#aa00ff", glow:"#aa00ff66", filter: c=>c.rarity.startsWith("Episch"),                   coinMin:700,  coinMax:1800 },
+  { label:"MYTHISCH",  chance:10, color:"#ff3300", glow:"#ff330066", filter: c=>c.rarity.startsWith("Mythisch"),                 coinMin:1500, coinMax:4000 },
+  { label:"LEGENDÄR",  chance:10, color:"#ffd700", glow:"#ffd70066", filter: c=>c.rarity.startsWith("Legendär")||c.rarity==="OG",coinMin:3000, coinMax:8000 },
+  { label:"OKTOPUS",   chance: 9, color:"#ff8800", glow:"#ff880066", filter: c=>c.rarity.startsWith("Oktopus"),                  coinMin:6000, coinMax:15000},
+  { label:"SECRET",    chance: 5, color:"#ff99ff", glow:"#ff99ff66", filter: c=>c.rarity==="Secret",                            coinMin:10000,coinMax:25000},
+  { label:"COINS",     chance: 3, color:"#ffbe0b", glow:"#ffbe0b66", filter: null, coinOnly:true, coinMin:2000, coinMax:10000 },
 ];
 
 function rollLootboxTier() {
@@ -1689,59 +1690,71 @@ function openLootbox() {
   coins -= LOOTBOX_PRICE; saveAll();
   document.getElementById("lootboxOverlay").classList.remove("hidden");
 
-  // Phase 1: spinning rarity reveal
   const tier = rollLootboxTier();
-  let pool = cars.filter(tier.filter);
-  if (!pool.length) pool = cars.filter(LOOTBOX_TIERS[0].filter);
-  const car = pool[Math.floor(Math.random() * pool.length)];
-  const idx = cars.indexOf(car);
-  const rc = RARITY_COLORS[car.rarity] || "#fff";
 
-  // Build odds table HTML
+  // Decide outcome: coinOnly tier, or car from pool
+  let isCoinReward = false;
+  let car = null, idx = -1, rc = "#fff";
+  let coinBonus = 0;
+
+  if (tier.coinOnly) {
+    isCoinReward = true;
+    coinBonus = Math.floor(Math.random() * (tier.coinMax - tier.coinMin + 1)) + tier.coinMin;
+  } else {
+    let pool = cars.filter(tier.filter);
+    if (!pool.length) pool = cars.filter(LOOTBOX_TIERS[0].filter);
+    car = pool[Math.floor(Math.random() * pool.length)];
+    idx = cars.indexOf(car);
+    rc = RARITY_COLORS[car.rarity] || "#fff";
+    // If already owned → coin fallback scaled to tier
+    if (ownedCars.includes(idx)) {
+      isCoinReward = true;
+      coinBonus = Math.floor(Math.random() * (tier.coinMax - tier.coinMin + 1)) + tier.coinMin;
+    }
+  }
+
+  // Build odds table (exclude coinOnly from car tiers display)
   const oddsHtml = LOOTBOX_TIERS.map(t =>
     `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;${t.label===tier.label?'font-weight:900;':''}">
-      <span style="color:${t.color};font-size:11px;letter-spacing:1px;">${t.label}</span>
-      <span style="color:${t.label===tier.label?t.color:'rgba(255,255,255,.35)'};font-family:'Orbitron',monospace;font-size:11px;">${t.chance}%</span>
+      <span style="color:${t.color};font-size:11px;letter-spacing:1px;">${t.label==="COINS"?"💰 MÜNZEN":t.label}</span>
+      <span style="color:${t.label===tier.label?t.color:'rgba(255,255,255,.3)'};font-family:'Orbitron',monospace;font-size:11px;">${t.chance}%</span>
     </div>`
   ).join("");
 
   document.getElementById("lootboxContent").innerHTML = `
     <div style="text-align:center;">
       <div class="lootbox-box" style="border-color:${tier.color};box-shadow:0 0 50px ${tier.glow},inset 0 0 30px ${tier.glow};">🎁</div>
-      <div style="margin-top:14px;padding:10px 16px;background:rgba(0,0,0,.3);border-radius:8px;border:1px solid rgba(255,255,255,.08);">
-        ${oddsHtml}
-      </div>
+      <div style="margin-top:14px;padding:10px 16px;background:rgba(0,0,0,.3);border-radius:8px;border:1px solid rgba(255,255,255,.08);">${oddsHtml}</div>
       <div style="margin-top:12px;font-family:'Orbitron',monospace;font-size:13px;letter-spacing:3px;color:${tier.color};text-shadow:0 0 12px ${tier.color};animation:blink 0.6s infinite;">
-        ${tier.label}...
+        ${tier.label==="COINS"?"💰 MÜNZEN":tier.label}...
       </div>
     </div>`;
 
-  // Phase 2: show result
   setTimeout(() => {
     let msg, sub;
-    if (!ownedCars.includes(idx)) {
+
+    if (isCoinReward) {
+      coins += coinBonus; saveAll();
+      msg = `<div class="lootbox-car-name" style="color:var(--yellow);text-shadow:0 0 24px var(--yellow)">${formatNum(coinBonus)} 🪙</div>`;
+      sub = tier.coinOnly
+        ? `<div style="color:rgba(255,255,255,.5);font-size:13px;margin:6px 0 16px;">💰 Münzen-Jackpot!</div>`
+        : `<div style="color:rgba(255,255,255,.4);font-size:13px;margin:4px 0 16px;">${car.name} bereits besessen → ${formatNum(coinBonus)} Coins</div>`;
+    } else {
       ownedCars.push(idx); saveAll(); checkAchievements();
       msg = `<div class="lootbox-car-name" style="color:${car.color};text-shadow:0 0 24px ${car.color}">${car.name}</div>`;
       sub = `<div class="lootbox-rarity" style="color:${rc};text-shadow:0 0 10px ${rc};font-size:13px;letter-spacing:3px;">${car.rarity}</div>
-             <div style="color:rgba(255,255,255,.5);font-size:13px;margin:6px 0 16px;">✨ Neues Fahrzeug freigeschaltet!</div>`;
-    } else {
-      const bonus = Math.floor(Math.random() * 2401) + 400;
-      coins += bonus; saveAll();
-      msg = `<div class="lootbox-car-name" style="color:var(--yellow);text-shadow:0 0 20px var(--yellow)">${formatNum(bonus)} 🪙</div>`;
-      sub = `<div style="color:rgba(255,255,255,.4);font-size:13px;margin:4px 0 16px;">${car.name} bereits besessen → Coins</div>`;
+             <div style="color:rgba(255,255,255,.5);font-size:13px;margin:6px 0 16px;">✨ Neues Fahrzeug!</div>`;
     }
 
     document.getElementById("lootboxContent").innerHTML = `
       <div class="lootbox-result">
         <div style="font-size:14px;font-family:'Orbitron',monospace;letter-spacing:3px;color:${tier.color};
-          text-shadow:0 0 16px ${tier.color};margin-bottom:8px;padding:6px 14px;
+          text-shadow:0 0 16px ${tier.color};margin-bottom:10px;padding:6px 16px;
           background:${tier.glow};border:1px solid ${tier.color};border-radius:6px;display:inline-block;">
-          ${tier.label}
+          ${tier.label==="COINS"?"💰 MÜNZEN":tier.label}
         </div>
         ${msg}${sub}
-        <div style="margin-bottom:16px;padding:8px 14px;background:rgba(0,0,0,.3);border-radius:8px;font-size:11px;color:rgba(255,255,255,.3);">
-          ${oddsHtml}
-        </div>
+        <div style="margin-bottom:16px;padding:8px 14px;background:rgba(0,0,0,.3);border-radius:8px;">${oddsHtml}</div>
         <button class="btn btn-primary" onclick="closeLootbox()">WEITER</button>
       </div>`;
     sfxPowerup();
