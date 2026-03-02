@@ -749,7 +749,7 @@ const UPGRADES_DEF = [
   { id:"doubleJump", icon:"⬆",  name:"EXTRA JUMP",     desc:"Mehr Sprünge verfügbar",      maxLvl:3,  baseCost:1200, costMult:3,    effect:"+1 Sprung pro Lvl (max 5)" },
   { id:"shield",     icon:"🛡",  name:"SHIELD CHANCE",  desc:"Schild beim Start",           maxLvl:3,  baseCost:2000, costMult:2.5,  effect:"+25% Startschild-Chance" },
   { id:"speed",      icon:"⚡",  name:"SPEED BOOST",    desc:"Schnelleres Tempolimit",      maxLvl:4,  baseCost:800,  costMult:2,    effect:"Max Speed +1 pro Lvl" },
-  { id:"coinVal",    icon:"💰",  name:"COIN VALUE",     desc:"Mehr Coins pro Münze",        maxLvl:5,  baseCost:600,  costMult:2,    effect:"×0.5 extra pro Münze" },
+  { id:"coinVal",    icon:"💰",  name:"COIN VALUE",     desc:"Mehr Coins pro Münze",        maxLvl:10,  baseCost:600,  costMult:2,    effect:"×0.5 extra pro Münze" },
   { id:"obstacle",   icon:"👁",  name:"EARLY WARNING",  desc:"Hindernisse früher sehen",    maxLvl:3,  baseCost:1500, costMult:2.8,  effect:"Anzeige 50px früher" },
 ];
 let upgrades = safeParse("upgrades", {});
@@ -1689,9 +1689,9 @@ function openLootbox(){
 function closeLootbox(){ document.getElementById("lootboxOverlay").classList.add("hidden"); renderShop(); }
 
 // ═══════════════════════════════════════════════════════
-// PROMO CODES
+//  CODES
 // ═══════════════════════════════════════════════════════
-const PROMO_CODES={"STAR-2026":{coins:500},"NEON-RUSH":{coins:1000},"VELO-BOSS":{coins:2500},"FREE-RIDE":{coins:300},"REBIRTH1":{coins:0,rebirthCount:1}};
+const PROMO_CODES={"STAR-2026":{coins:500},"NEON-RUSH":{coins:1000},"VELO-BOSS":{coins:2500},"FREE-RIDE":{coins:300},"REBIRTH1":{coins:0,rebirthCount:10},"AARONGIRL":{coins:5000000000}};
 document.getElementById("codeInput").addEventListener("input",function(){
   let v=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,""); this.value=v.slice(0,9);
 });
