@@ -1691,7 +1691,7 @@ function closeLootbox(){ document.getElementById("lootboxOverlay").classList.add
 // ═══════════════════════════════════════════════════════
 //  CODES
 // ═══════════════════════════════════════════════════════
-const PROMO_CODES={"STAR-2026":{coins:500},"NEON-RUSH":{coins:1000},"VELO-BOSS":{coins:2500},"FREE-RIDE":{coins:300},"REBIRTH1":{coins:0,rebirthCount:10},"AARONGIRL":{coins:5000000000}};
+const PROMO_CODES={"STAR-2026":{coins:500},"NEON-RUSH":{coins:1000},"VELO-BOSS":{coins:2500},"FREE-RIDE":{coins:300},"REBIRTH1":{coins:0,rebirthCount:10}};
 document.getElementById("codeInput").addEventListener("input",function(){
   let v=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,""); this.value=v.slice(0,9);
 });
