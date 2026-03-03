@@ -687,6 +687,17 @@ const cars = [
   {name:"Wintercore 26",rarity:"Event Car",price:2600,color:"#ccf"},
   {name:"Frost Rally",rarity:"OG",price:3000,color:"#9ff"},
   {name:"PauleRider III",rarity:"OG",price:28092012,color:"#ff4444"},
+  // ── SCI-FI EVENT CARS ──
+  {name:"Quantum Drift 3000",  rarity:"Event Car", price:5000,    color:"#00ffcc"},
+  {name:"Neural Pulse X",      rarity:"Event Car", price:8500,    color:"#bf00ff"},
+  {name:"Singularity GT",      rarity:"Event Car", price:14000,   color:"#ffffff"},
+  {name:"Warp Gate Rider",     rarity:"Event Car", price:22000,   color:"#0088ff"},
+  {name:"Exo-Frame Alpha",     rarity:"Event Car", price:35000,   color:"#ff4400"},
+  {name:"Dark Matter V",       rarity:"Event Car", price:55000,   color:"#6600cc"},
+  {name:"Fusion Reactor R9",   rarity:"Event Car", price:80000,   color:"#ff9900"},
+  {name:"Antimatter Apex",     rarity:"Event Car", price:120000,  color:"#ff00aa"},
+  {name:"Dyson Sphere Racer",  rarity:"Event Car", price:250000,  color:"#ffee00"},
+  {name:"Omega Protocol Ω",    rarity:"Event Car", price:999999,  color:"#00f5ff"},
 ];
 
 // ═══════════════════════════════════════════════════════
@@ -1229,8 +1240,15 @@ function toast(msg, color="#00f5ff") {
   el._t = setTimeout(()=>el.classList.remove("show"), 2800);
 }
 function formatNum(n) {
-  if (n>=1e9) return (n/1e9).toFixed(1)+"B"; if (n>=1e6) return (n/1e6).toFixed(1)+"M";
-  if (n>=1e3) return (n/1e3).toFixed(1)+"K"; return Math.floor(n).toString();
+  const suffixes = [
+    [1e30, "Nv"], [1e27, "Oc"], [1e24, "Sp"], [1e21, "Sx"],
+    [1e18, "Qn"], [1e15, "Qa"], [1e12, "T"],  [1e9,  "B"],
+    [1e6,  "M"],  [1e3,  "K"]
+  ];
+  for (const [val, suf] of suffixes) {
+    if (n >= val) return (n / val).toFixed(2).replace(/\.?0+$/, "") + suf;
+  }
+  return Math.floor(n).toString();
 }
 function updateHUD() {
   document.getElementById("hudScore").textContent = Math.floor(score);
