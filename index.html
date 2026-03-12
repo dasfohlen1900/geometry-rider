@@ -465,7 +465,8 @@ body{background:var(--bg);font-family:'Rajdhani',sans-serif;overflow:hidden;colo
         <div><div class="setting-label">Bildschirmerschütterung</div></div>
         <button class="toggle" id="toggleShake" onclick="toggleSetting('shake')"></button>
       </div>
-      <div style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07);">
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:8px;">
+        <button class="btn btn-primary" onclick="doRestoreBackup()" style="width:100%;">♻ BACKUP WIEDERHERSTELLEN</button>
         <button class="btn btn-danger" onclick="confirmReset()" style="width:100%;">⚠ ALLE DATEN LÖSCHEN</button>
       </div>
     </div>
@@ -721,7 +722,37 @@ const cars = [
 function safeParse(key, fallback) {
   try { const v = JSON.parse(localStorage.getItem(key)); return v !== null ? v : fallback; } catch { return fallback; }
 }
+
+// Backup critical values before each save — restores on next load if corruption detected
+function saveBackup() {
+  try {
+    const snap = {
+      highscore:    localStorage.getItem("riderHighscore"),
+      coins:        localStorage.getItem("coins"),
+      ownedCars:    localStorage.getItem("ownedCars"),
+      rebirthCount: localStorage.getItem("rebirthCount"),
+      upgrades:     localStorage.getItem("upgrades"),
+      ts: Date.now()
+    };
+    localStorage.setItem("_backup", JSON.stringify(snap));
+  } catch {}
+}
+
+function restoreFromBackup() {
+  try {
+    const b = JSON.parse(localStorage.getItem("_backup"));
+    if (!b) return false;
+    if (b.highscore  != null) localStorage.setItem("riderHighscore", b.highscore);
+    if (b.coins      != null) localStorage.setItem("coins", b.coins);
+    if (b.ownedCars  != null) localStorage.setItem("ownedCars", b.ownedCars);
+    if (b.rebirthCount != null) localStorage.setItem("rebirthCount", b.rebirthCount);
+    if (b.upgrades   != null) localStorage.setItem("upgrades", b.upgrades);
+    return true;
+  } catch { return false; }
+}
+
 function saveAll() {
+  saveBackup();
   saveCoins();
   localStorage.setItem("riderHighscore", highscore);
   localStorage.setItem("ownedCars", JSON.stringify(ownedCars));
@@ -1963,6 +1994,19 @@ function showConfirm(title,msg,onYes){
     document.getElementById("confirmModal").classList.add("hidden"); onYes();
   };
 }
+function doRestoreBackup() {
+  const b = (() => { try { return JSON.parse(localStorage.getItem("_backup")); } catch { return null; } })();
+  if (!b) { toast("Kein Backup vorhanden!", "#ff006e"); return; }
+  const age = Math.round((Date.now() - b.ts) / 60000);
+  showConfirm("♻ BACKUP WIEDERHERSTELLEN?",
+    `Backup vom vor ~${age} Minute(n).\nHighscore, Coins, Autos, Upgrades & Rebirths werden wiederhergestellt.`,
+    () => {
+      restoreFromBackup();
+      location.reload();
+    }
+  );
+}
+
 function confirmReset(){
   showConfirm("⚠ ALLE DATEN LÖSCHEN","Dies löscht alle Coins, Fahrzeuge, Upgrades und Fortschritte unwiderruflich!",()=>{
     localStorage.clear(); location.reload();
