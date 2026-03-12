@@ -387,7 +387,7 @@ body{background:var(--bg);font-family:'Rajdhani',sans-serif;overflow:hidden;colo
       <div class="rebirth-panel">
         <div class="rebirth-title">🔥 REBIRTH SYSTEM</div>
         <div style="color:rgba(255,255,255,.5);font-size:14px;margin-bottom:16px;">
-          Setze Score & Coins zurück für einen dauerhaften Coin-Multiplikator auf alle zukünftigen Runs.
+          Setze Coins & Gesamt-Score zurück für einen dauerhaften Coin-Multiplikator auf alle zukünftigen Runs.
         </div>
         <div style="color:rgba(255,255,255,.4);font-size:12px;letter-spacing:2px;margin-bottom:6px;">AKTUELLE REBIRTHS</div>
         <div class="rebirth-count" id="rebirthCount">0</div>
@@ -396,7 +396,7 @@ body{background:var(--bg);font-family:'Rajdhani',sans-serif;overflow:hidden;colo
         <div id="rebirthNextPreview" style="font-size:12px;color:rgba(255,255,255,.25);font-family:'Orbitron',monospace;margin-top:4px;letter-spacing:1px;min-height:18px;"></div>
         <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px;align-items:center;">
           <button class="btn btn-gold" id="rebirthBtn" onclick="doRebirth()" style="padding:14px 32px;font-size:14px;">🔥 REBIRTH AUSFÜHREN</button>
-          <div style="font-size:12px;color:rgba(255,255,255,.3);">Score & Coins werden zurückgesetzt.<br>Fahrzeuge & Upgrades bleiben erhalten.</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.3);">Coins & Gesamt-Score werden zurückgesetzt.<br>Fahrzeuge, Upgrades & Highscore bleiben erhalten.</div>
         </div>
       </div>
     </div>
@@ -416,15 +416,18 @@ body{background:var(--bg);font-family:'Rajdhani',sans-serif;overflow:hidden;colo
   <!-- ── LEADERBOARD TAB ── -->
   <div class="tab-pane" id="tab-leaderboard">
     <div class="panel-body">
-      <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:14px;">
-        Lokale Bestenliste (Gerät). Gib deinen Namen ein:
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-family:'Orbitron',monospace;font-size:13px;color:var(--cyan);">🌐 GLOBALE RANGLISTE</div>
+        <button class="btn btn-primary" onclick="fetchGlobalLB()" style="padding:5px 12px;font-size:10px;">↻ LADEN</button>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:16px;">
-        <input id="lbNameInput" placeholder="Dein Name" maxlength="16"
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <input id="lbNameInput" placeholder="Dein Benutzername" maxlength="16"
           style="flex:1;background:var(--glass);border:1px solid var(--gb);color:#fff;border-radius:6px;padding:8px 12px;font-family:'Rajdhani',sans-serif;font-size:14px;outline:none;">
-        <button class="btn btn-primary" onclick="saveLBName()" style="padding:8px 14px;font-size:10px;">SPEICHERN</button>
+        <button class="btn btn-primary" onclick="saveLBName()" style="padding:8px 14px;font-size:10px;">✓</button>
       </div>
+      <div id="lbStatus" style="font-size:11px;color:rgba(255,255,255,.35);font-family:'Orbitron',monospace;margin-bottom:10px;text-align:center;"></div>
       <div id="lbList"></div>
+      <div style="margin-top:10px;font-size:10px;color:rgba(255,255,255,.2);text-align:center;">Dein Highscore wird automatisch nach jedem Run übermittelt</div>
     </div>
   </div>
 
@@ -469,7 +472,19 @@ body{background:var(--bg);font-family:'Rajdhani',sans-serif;overflow:hidden;colo
   </div>
 </div>
 
-<!-- ═══ LOOTBOX ═══ -->
+<!-- ═══ USERNAME PROMPT ═══ -->
+<div class="overlay hidden" id="usernameOverlay" style="z-index:100;">
+  <div class="modal" style="text-align:center;max-width:360px;">
+    <div style="font-family:'Orbitron',monospace;font-size:20px;font-weight:900;color:var(--cyan);margin-bottom:8px;">WILLKOMMEN!</div>
+    <div style="color:rgba(255,255,255,.5);font-size:13px;margin-bottom:20px;">Wähle deinen Spielernamen für die globale Rangliste.</div>
+    <input id="usernameInput" placeholder="Dein Name (3–16 Zeichen)" maxlength="16"
+      style="width:100%;background:var(--glass);border:1px solid var(--cyan);color:#fff;border-radius:8px;padding:12px 14px;
+      font-family:'Orbitron',monospace;font-size:14px;outline:none;margin-bottom:14px;text-align:center;letter-spacing:2px;">
+    <div id="usernameError" style="color:var(--pink);font-size:12px;margin-bottom:10px;min-height:16px;"></div>
+    <button class="btn btn-primary" onclick="confirmUsername()" style="width:100%;padding:12px;font-size:14px;">LOS GEHT'S →</button>
+  </div>
+</div>
+
 <div class="overlay hidden" id="lootboxOverlay" style="z-index:60;">
   <div class="modal"><div id="lootboxContent"></div></div>
 </div>
@@ -707,7 +722,7 @@ function safeParse(key, fallback) {
   try { const v = JSON.parse(localStorage.getItem(key)); return v !== null ? v : fallback; } catch { return fallback; }
 }
 function saveAll() {
-  localStorage.setItem("coins", coins);
+  saveCoins();
   localStorage.setItem("riderHighscore", highscore);
   localStorage.setItem("ownedCars", JSON.stringify(ownedCars));
   localStorage.setItem("selectedCar", selectedCar);
@@ -725,7 +740,23 @@ function saveAll() {
   localStorage.setItem("challengeData", JSON.stringify(challengeData));
 }
 
-let coins = Math.max(0, parseInt(localStorage.getItem("coins")||"0")||0);
+// ── BIGINT COINS ──
+// Coins are stored as strings to avoid JS float precision loss
+function coinFromStorage() {
+  try {
+    const v = localStorage.getItem("coins") || "0";
+    return BigInt(v.replace(/[^0-9]/g, "") || "0");
+  } catch { return 0n; }
+}
+let coins = coinFromStorage();
+
+function saveCoins() { localStorage.setItem("coins", coins.toString()); }
+
+// Wrappers so the rest of the code stays readable
+function coinsAdd(n)  { coins += BigInt(Math.floor(Number(n))); saveCoins(); }
+function coinsSub(n)  { coins -= BigInt(Math.floor(Number(n))); if (coins < 0n) coins = 0n; saveCoins(); }
+function coinsGte(n)  { return coins >= BigInt(Math.floor(Number(n))); }
+function coinsNum()   { return Number(coins); } // only for display / small comparisons
 let highscore = Math.max(0, parseInt(localStorage.getItem("riderHighscore")||"0")||0);
 let ownedCars = (() => {
   let a = safeParse("ownedCars",[0]);
@@ -777,8 +808,8 @@ function buyUpgrade(id) {
   const lvl = upgrades[id];
   if (lvl >= def.maxLvl) { toast("Bereits maximales Level!", "#ff006e"); return; }
   const cost = getUpgradeCost(def);
-  if (coins < cost) { toast(`Zu wenig Coins! (${formatNum(cost)} benötigt)`, "#ff006e"); return; }
-  coins -= cost;
+  if (!coinsGte(cost)) { toast(`Zu wenig Coins! (${formatNum(cost)} benötigt)`, "#ff006e"); return; }
+  coinsSub(cost);
   upgrades[id]++;
   sfxBuy();
   saveAll();
@@ -792,7 +823,7 @@ function renderUpgrades() {
     const lvl = upgrades[def.id];
     const maxed = lvl >= def.maxLvl;
     const cost = getUpgradeCost(def);
-    const canBuy = !maxed && coins >= cost;
+    const canBuy = !maxed && coinsGte(cost);
     return `<div class="upgrade-card">
       <div class="upgrade-icon">${def.icon}</div>
       <div class="upgrade-name">${def.name}</div>
@@ -812,13 +843,17 @@ function renderUpgrades() {
 // ═══════════════════════════════════════════════════════
 // REBIRTH
 // ═══════════════════════════════════════════════════════
-// Rebirth requirements per level
+// REBIRTH SYSTEM (22 levels)
+// ═══════════════════════════════════════════════════════
 function getRebirthReq(n) {
-  if (n === 0) return { coins: 0,     score: 0  }; // erster Rebirth: frei
-  if (n === 1) return { coins: 500,   score: 15 };
-  if (n <= 8)  return { coins: 500 + (n-1)*500, score: 10 + n*5 }; // 1000/20, 1500/25 … 4000/45
-  if (n <= 14) return { coins: 5000 + (n-8)*2000, score: 40 + (n-7)*10 }; // 7000/60, 9000/70 …
-  return null; // n===15 → alle Autos
+  if (n === 0)  return { coins: 0,      score: 0   };
+  if (n === 1)  return { coins: 500,    score: 15  };
+  if (n <= 8)   return { coins: 500  + (n-1)*500,   score: 10  + n*5   };  // →4000/45
+  if (n <= 14)  return { coins: 5000 + (n-8)*2000,  score: 40  + (n-7)*10 }; // →19000/110
+  if (n <= 19)  return { coins: 25000+ (n-14)*8000, score: 120 + (n-14)*20 }; // →65000/220
+  if (n === 20) return { coins: 120000, score: 400  };
+  if (n === 21) return { coins: 500000, score: 800  };
+  return null; // n===22 → alle Autos
 }
 
 function rebirthMultiplier() { return 1 + rebirthCount * 0.5; }
@@ -829,69 +864,66 @@ function renderRebirth() {
     ? `Coin-Multiplikator: ×${rebirthMultiplier().toFixed(1)}`
     : "Kein Bonus aktiv";
 
-  const maxRebirth = 15;
+  const MAX = 22;
   let canRebirth = false;
-  let reqText = "";
 
-  if (rebirthCount >= maxRebirth) {
-    reqText = "Maximum erreicht! (15/15)";
+  if (rebirthCount >= MAX) {
+    document.getElementById("rebirthReq").innerHTML = "🏆 Maximum erreicht! (22/22)";
     canRebirth = false;
-  } else if (rebirthCount === maxRebirth - 1) {
-    // Letzter Rebirth: alle Autos besitzen
+  } else if (rebirthCount === MAX - 1) {
     const allOwned = cars.every((_, i) => ownedCars.includes(i));
     canRebirth = allOwned;
-    reqText = allOwned
+    document.getElementById("rebirthReq").innerHTML = allOwned
       ? "✅ Alle Autos besessen!"
-      : `Besitze alle ${cars.length} Fahrzeuge (${ownedCars.length}/${cars.length})`;
+      : `❌ Besitze alle ${cars.length} Fahrzeuge (${ownedCars.length}/${cars.length})`;
   } else {
     const req = getRebirthReq(rebirthCount);
-    const coinOk  = coins >= req.coins;
-    const scoreOk = highscore >= req.score;
+    const coinOk  = coinsGte(req.coins);
+    const scoreOk = totalScore >= req.score;
     canRebirth = coinOk && scoreOk;
-    const coinStr  = req.coins > 0 ? `${coinOk?"✅":"❌"} ${formatNum(req.coins)} 🪙 (du: ${formatNum(coins)})` : "";
-    const scoreStr = req.score > 0 ? `${scoreOk?"✅":"❌"} Highscore ≥ ${req.score} (du: ${Math.floor(highscore)})` : "";
-    reqText = [coinStr, scoreStr].filter(Boolean).join("   |   ") || "Keine Voraussetzungen";
+    const parts = [];
+    if (req.coins > 0) parts.push(`${coinOk?"✅":"❌"} ${formatNum(req.coins)} 🪙 (du: ${formatNum(coins)})`);
+    if (req.score > 0) parts.push(`${scoreOk?"✅":"❌"} Gesamt-Score ≥ ${req.score} (du: ${totalScore})`);
+    document.getElementById("rebirthReq").innerHTML = parts.join("&nbsp;&nbsp;|&nbsp;&nbsp;") || "Keine Voraussetzungen";
   }
 
-  document.getElementById("rebirthReq").innerHTML = reqText;
   const btn = document.getElementById("rebirthBtn");
   btn.disabled = !canRebirth;
   btn.style.opacity = canRebirth ? "1" : "0.4";
 
-  // Show next rebirth preview
   const next = rebirthCount + 1;
-  if (next <= maxRebirth) {
-    const nextReq = next === maxRebirth ? null : getRebirthReq(next);
-    const previewEl = document.getElementById("rebirthNextPreview");
-    if (previewEl) {
-      previewEl.textContent = next === maxRebirth
-        ? `Rebirth ${next}: Alle Fahrzeuge besitzen`
-        : nextReq
-          ? `Rebirth ${next}: ${nextReq.coins>0?formatNum(nextReq.coins)+" 🪙":""} ${nextReq.score>0?"| Score ≥"+nextReq.score:""}`
-          : "";
+  const previewEl = document.getElementById("rebirthNextPreview");
+  if (previewEl && next <= MAX) {
+    if (next === MAX) {
+      previewEl.textContent = `Rebirth ${next}: Alle Fahrzeuge besitzen`;
+    } else {
+      const r = getRebirthReq(next);
+      previewEl.textContent = `Nächstes Rebirth (${next}): ${r.coins>0?formatNum(r.coins)+" 🪙":""}${r.score>0?" | Gesamt-Score ≥"+r.score:""}`;
     }
   }
 }
 
 function doRebirth() {
-  const maxRebirth = 15;
-  if (rebirthCount >= maxRebirth) { toast("Maximales Rebirth erreicht!", "#ff006e"); return; }
+  const MAX = 22;
+  if (rebirthCount >= MAX) { toast("Maximales Rebirth erreicht!", "#ff006e"); return; }
 
   let canRebirth = false;
-  if (rebirthCount === maxRebirth - 1) {
+  if (rebirthCount === MAX - 1) {
     canRebirth = cars.every((_, i) => ownedCars.includes(i));
   } else {
     const req = getRebirthReq(rebirthCount);
-    canRebirth = coins >= req.coins && highscore >= req.score;
+    canRebirth = coinsGte(req.coins) && totalScore >= req.score;
   }
   if (!canRebirth) { toast("Voraussetzungen nicht erfüllt!", "#ff006e"); return; }
 
   const nextMulti = (rebirthMultiplier() + 0.5).toFixed(1);
   showConfirm("🔥 REBIRTH AUSFÜHREN?",
-    `Coins und Highscore werden auf 0 zurückgesetzt.\nFahrzeuge & Upgrades bleiben erhalten.\nNeuer Multiplikator: ×${nextMulti}`,
+    `Coins und Gesamt-Score werden auf 0 zurückgesetzt.\nFahrzeuge & Upgrades bleiben erhalten.\nNeuer Multiplikator: ×${nextMulti}`,
     () => {
       rebirthCount++;
-      coins = 0; highscore = 0;
+      coins = 0n; saveCoins();
+      totalScore = 0;
+      localStorage.setItem("totalScore", 0);
       sfxPowerup(); saveAll();
       toast(`🔥 REBIRTH ${rebirthCount}! Multiplikator: ×${rebirthMultiplier().toFixed(1)}`, "#ff7700");
       renderRebirth(); updatePanelCoins(); updateHUD();
@@ -1015,7 +1047,7 @@ function claimChallenge(id) {
   if (challengeData.claimed.includes(id)) return;
   const prog = challengeData.progress[id]||0;
   if (prog < def.target) { toast("Noch nicht abgeschlossen!", "#ff006e"); return; }
-  coins += def.reward;
+  coinsAdd(def.reward);
   challengeData.claimed.push(id);
   saveAll(); sfxAch();
   toast(`✅ ${def.name} — +${formatNum(def.reward)} 🪙`, "#06ff6e");
@@ -1142,40 +1174,123 @@ function renderAchievements() {
 // ═══════════════════════════════════════════════════════
 // LEADERBOARD
 // ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// USERNAME
+// ═══════════════════════════════════════════════════════
+function confirmUsername() {
+  const val = document.getElementById("usernameInput").value.trim();
+  const err = document.getElementById("usernameError");
+  if (val.length < 3)  { err.textContent = "Mindestens 3 Zeichen!"; return; }
+  if (val.length > 16) { err.textContent = "Maximal 16 Zeichen!"; return; }
+  if (!/^[a-zA-Z0-9_\-,\."'ÄÖÜäöüß ]+$/.test(val)) { err.textContent = "Erlaubt: A-Z a-z 0-9 - _ , . \" ' Umlaute"; return; }
+  lbName = val;
+  localStorage.setItem("lbName", lbName);
+  document.getElementById("usernameOverlay").classList.add("hidden");
+  document.getElementById("lbNameInput").value = lbName;
+  toast(`Willkommen, ${lbName}!`, "#06ff6e");
+  fetchGlobalLB();
+}
+
 function saveLBName() {
-  lbName = document.getElementById("lbNameInput").value.trim() || "Spieler";
-  lbName = lbName.slice(0,16);
+  const val = document.getElementById("lbNameInput").value.trim();
+  if (val.length < 3) { toast("Mindestens 3 Zeichen!", "#ff006e"); return; }
+  if (!/^[a-zA-Z0-9_\-,\."'ÄÖÜäöüß ]+$/.test(val)) { toast("Erlaubt: A-Z a-z 0-9 - _ , . \" ' Umlaute", "#ff006e"); return; }
+  lbName = val.slice(0,16);
+  localStorage.setItem("lbName", lbName);
   saveAll();
   toast(`Name gespeichert: ${lbName}`, "#06ff6e");
 }
 
-function submitScore(score) {
-  const existing = leaderboard.findIndex(e => e.name === lbName);
-  if (existing >= 0) {
-    if (score > leaderboard[existing].score) leaderboard[existing].score = Math.floor(score);
-  } else {
-    leaderboard.push({ name: lbName, score: Math.floor(score) });
+// ═══════════════════════════════════════════════════════
+// GLOBAL LEADERBOARD (JSONBin.io)
+// ═══════════════════════════════════════════════════════
+const LB_BIN   = "6848000c8960c979a59f2ee8";
+const LB_KEY   = "$2a$10$9Yn/tAFq.9cBJoFdw5jNiOr4ZrKz3y2Wjaz7/7XULX7s6Ix1T4Mya";
+const LB_URL   = `https://api.jsonbin.io/v3/b/${LB_BIN}`;
+let globalLB   = [];
+let lbLoaded   = false;
+
+async function fetchGlobalLB() {
+  const status = document.getElementById("lbStatus");
+  if (status) status.textContent = "⏳ Lade Rangliste...";
+  try {
+    const res = await fetch(LB_URL + "/latest", {
+      headers: { "X-Master-Key": LB_KEY }
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    globalLB = Array.isArray(data.record?.scores) ? data.record.scores : [];
+    lbLoaded = true;
+    if (status) status.textContent = `✅ ${globalLB.length} Einträge geladen`;
+    renderLeaderboard();
+  } catch(e) {
+    if (status) status.textContent = "❌ Offline – lokale Daten";
+    renderLeaderboard();
   }
-  leaderboard.sort((a,b)=>b.score-a.score);
-  leaderboard = leaderboard.slice(0, 20);
-  saveAll();
+}
+
+async function pushScore(score) {
+  if (!lbName || lbName === "Spieler") return;
+  const s = Math.floor(score);
+  if (s <= 0) return;
+
+  // Update local cache first
+  const idx = globalLB.findIndex(e => e.name === lbName);
+  if (idx >= 0) {
+    if (s <= globalLB[idx].score) return; // not a new high
+    globalLB[idx] = { name: lbName, score: s, rb: rebirthCount };
+  } else {
+    globalLB.push({ name: lbName, score: s, rb: rebirthCount });
+  }
+  globalLB.sort((a,b) => b.score - a.score);
+  globalLB = globalLB.slice(0, 100);
+
+  try {
+    await fetch(LB_URL, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-Master-Key": LB_KEY },
+      body: JSON.stringify({ scores: globalLB })
+    });
+  } catch(e) { /* silent fail */ }
+  renderLeaderboard();
 }
 
 function renderLeaderboard() {
   document.getElementById("lbNameInput").value = lbName;
-  if (!leaderboard.length) {
-    document.getElementById("lbList").innerHTML = `<div style="color:rgba(255,255,255,.4);font-size:14px;text-align:center;padding:20px;">Noch keine Einträge. Spiele zuerst!</div>`;
+  const list = document.getElementById("lbList");
+  const data = lbLoaded ? globalLB : leaderboard; // fallback to local
+
+  if (!data.length) {
+    list.innerHTML = `<div style="color:rgba(255,255,255,.4);font-size:14px;text-align:center;padding:20px;">Noch keine Einträge.</div>`;
     return;
   }
-  document.getElementById("lbList").innerHTML = leaderboard.map((e,i) => `
+  const medals = ["🥇","🥈","🥉"];
+  list.innerHTML = data.slice(0, 50).map((e, i) => `
     <div class="lb-entry ${e.name===lbName?'me':''}">
-      <div class="lb-rank">${i+1}</div>
-      <div class="lb-name">${e.name}</div>
+      <div class="lb-rank" style="min-width:32px;text-align:center;">${medals[i] || (i+1)}</div>
+      <div class="lb-name" style="flex:1;">${e.name}${e.rb>0?` <span style="color:var(--orange);font-size:10px;">🔥${e.rb}</span>`:""}</div>
       <div class="lb-score">${formatNum(e.score)}</div>
     </div>
   `).join("");
 }
 
+// Local leaderboard fallback
+function submitScore(score) {
+  const s = Math.floor(score);
+  const existing = leaderboard.findIndex(e => e.name === lbName);
+  if (existing >= 0) {
+    if (s > leaderboard[existing].score) leaderboard[existing].score = s;
+  } else {
+    leaderboard.push({ name: lbName, score: s });
+  }
+  leaderboard.sort((a,b) => b.score - a.score);
+  leaderboard = leaderboard.slice(0, 20);
+  saveAll();
+  pushScore(score); // also push to global
+}
+
+// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════
 // POWERUP SYSTEM
 // ═══════════════════════════════════════════════════════
@@ -1240,15 +1355,32 @@ function toast(msg, color="#00f5ff") {
   el._t = setTimeout(()=>el.classList.remove("show"), 2800);
 }
 function formatNum(n) {
+  let v = typeof n === "bigint" ? n : BigInt(Math.floor(Number(n)));
+  if (v < 0n) v = 0n;
   const suffixes = [
-    [1e30, "Nv"], [1e27, "Oc"], [1e24, "Sp"], [1e21, "Sx"],
-    [1e18, "Qn"], [1e15, "Qa"], [1e12, "T"],  [1e9,  "B"],
-    [1e6,  "M"],  [1e3,  "K"]
+    [BigInt("1000000000000000000000000000000"), "Nv"],
+    [BigInt("1000000000000000000000000000"),    "Oc"],
+    [BigInt("1000000000000000000000000"),       "Sp"],
+    [BigInt("1000000000000000000000"),          "Sx"],
+    [BigInt("1000000000000000000"),             "Qn"],
+    [BigInt("1000000000000000"),                "Qa"],
+    [BigInt("1000000000000"),                   "T"],
+    [BigInt("1000000000"),                      "B"],
+    [BigInt("1000000"),                         "M"],
+    [BigInt("1000"),                            "K"],
   ];
   for (const [val, suf] of suffixes) {
-    if (n >= val) return (n / val).toFixed(2).replace(/\.?0+$/, "") + suf;
+    if (v >= val) {
+      // multiply by 100 first to get 2 decimal places without float
+      const scaled = v * 100n / val;
+      const whole  = scaled / 100n;
+      const frac   = scaled % 100n;
+      if (frac === 0n) return `${whole}${suf}`;
+      const fracStr = frac.toString().padStart(2, "0").replace(/0+$/, "");
+      return `${whole}.${fracStr}${suf}`;
+    }
   }
-  return Math.floor(n).toString();
+  return v.toString();
 }
 function updateHUD() {
   document.getElementById("hudScore").textContent = Math.floor(score);
@@ -1402,7 +1534,7 @@ function update() {
     if (c.x+c.r<0) return false;
     if (player.x<c.x+c.r&&player.x+PLAYER_W>c.x-c.r&&player.y<c.y+c.r&&player.y+PLAYER_H>c.y-c.r) {
       const earned = Math.floor(1*multi);
-      coins+=earned; coinsThisRun+=earned; totalCoins+=earned;
+      coinsAdd(earned); coinsThisRun+=earned; totalCoins+=earned;
       spawnParticle(c.x,c.y,"#ffbe0b",5); sfxCoin(); return false;
     }
     return true;
@@ -1446,7 +1578,7 @@ function endGame() {
   saveAll();
   document.getElementById("goScore").textContent=`Score: ${Math.floor(score)}`;
   document.getElementById("goHS").textContent=`Highscore: ${Math.floor(highscore)}`;
-  document.getElementById("newHSBadge").classList.toggle("hidden",!isNewHS);
+  document.getElementById("newHSBadge").classList.toggle("hidden", !isNewHS);
   document.getElementById("goCoinsEarned").textContent=coinsThisRun>0?`+${formatNum(coinsThisRun)} 🪙 verdient`:"";
   document.getElementById("gameOverScreen").classList.remove("hidden");
   updateHUD();
@@ -1704,8 +1836,8 @@ function rollLootboxTier() {
 }
 
 function openLootbox() {
-  if (coins < LOOTBOX_PRICE) { toast("Zu wenig Coins!", "#ff006e"); return; }
-  coins -= LOOTBOX_PRICE; saveAll();
+  if (!coinsGte(LOOTBOX_PRICE)) { toast("Zu wenig Coins!", "#ff006e"); return; }
+  coinsSub(LOOTBOX_PRICE);
   document.getElementById("lootboxOverlay").classList.remove("hidden");
 
   const tier = rollLootboxTier();
@@ -1752,7 +1884,7 @@ function openLootbox() {
     let msg, sub;
 
     if (isCoinReward) {
-      coins += coinBonus; saveAll();
+      coinsAdd(coinBonus);
       msg = `<div class="lootbox-car-name" style="color:var(--yellow);text-shadow:0 0 24px var(--yellow)">${formatNum(coinBonus)} 🪙</div>`;
       sub = tier.coinOnly
         ? `<div style="color:rgba(255,255,255,.5);font-size:13px;margin:6px 0 16px;">💰 Münzen-Jackpot!</div>`
@@ -1784,7 +1916,7 @@ function closeLootbox() { document.getElementById("lootboxOverlay").classList.ad
 // ═══════════════════════════════════════════════════════
 // PROMO CODES
 // ═══════════════════════════════════════════════════════
-const PROMO_CODES={"STAR-2026":{coins:500},"NEON-RUSH":{coins:1000},"VELO-BOSS":{coins:2500},"FREE-RIDE":{coins:300},"REBIRTH1":{coins:0,rebirthCount:1},"MORITZ174":{coins:1000000000000000}};
+const PROMO_CODES={"STAR-2026":{coins:500},"NEON-RUSH":{coins:1000},"VELO-BOSS":{coins:2500},"FREE-RIDE":{coins:300},"REBIRTH1":{coins:0,rebirthCount:1}};
 document.getElementById("codeInput").addEventListener("input",function(){
   let v=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,""); this.value=v.slice(0,9);
 });
@@ -1796,7 +1928,7 @@ function redeemCode(){
   const r=PROMO_CODES[code];
   if(!r){toast("Ungültiger Code!","#ff006e");return;}
   let msg="Code eingelöst!";
-  if(r.coins){coins+=r.coins;msg+=` +${formatNum(r.coins)} Coins`;}
+  if(r.coins){coinsAdd(r.coins);msg+=` +${formatNum(r.coins)} Coins`;}
   if(r.carId!=null&&!ownedCars.includes(r.carId)){ownedCars.push(r.carId);msg+=` + ${cars[r.carId].name}`;}
   redeemedCodes.push(code); saveAll(); document.getElementById("codeInput").value="";
   sfxBuy(); toast(msg,"#06ff6e"); renderShop(); updatePanelCoins();
@@ -1866,6 +1998,15 @@ document.getElementById("startCoins").textContent=formatNum(coins);
 document.getElementById("startRebirth").textContent="×"+rebirthCount;
 updateHUD();
 gameLoop();
+
+// Show username prompt if not set, otherwise fetch global LB
+if (!lbName || lbName === "Spieler" || lbName === "") {
+  document.getElementById("usernameOverlay").classList.remove("hidden");
+} else {
+  document.getElementById("usernameOverlay").classList.add("hidden");
+  document.getElementById("lbNameInput").value = lbName;
+  fetchGlobalLB();
+}
 </script>
 </body>
 </html>
