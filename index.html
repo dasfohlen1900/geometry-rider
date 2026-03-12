@@ -1833,8 +1833,8 @@ function renderShop() {
 function buyCar(id){
   const c=cars[id]; if(!c) return;
   if(ownedCars.includes(id)){toast("Bereits besessen!");return;}
-  if(coins<c.price){toast(`Zu wenig Coins! (${formatNum(c.price)} benötigt)`,"#ff006e");return;}
-  coins-=c.price; ownedCars.push(id); sfxBuy(); saveAll(); checkAchievements();
+  if(!coinsGte(c.price)){toast(`Zu wenig Coins! (${formatNum(c.price)} benötigt)`,"#ff006e");return;}
+  coinsSub(c.price); ownedCars.push(id); sfxBuy(); saveAll(); checkAchievements();
   toast(`${c.name} gekauft! 🚗`,"#06ff6e"); renderShop(); updatePanelCoins();
 }
 function selectCar(id){
@@ -1947,7 +1947,7 @@ function closeLootbox() { document.getElementById("lootboxOverlay").classList.ad
 // ═══════════════════════════════════════════════════════
 // PROMO CODES
 // ═══════════════════════════════════════════════════════
-const PROMO_CODES={"STAR-2026":{coins:500},"NEON-RUSH":{coins:1000},"VELO-BOSS":{coins:2500},"FREE-RIDE":{coins:300},"REBIRTH1":{coins:0,rebirthCount:1}, "17PR-OMAX":{coins:3000000000000000}};
+const PROMO_CODES={"STAR-2026":{coins:500},"NEON-RUSH":{coins:1000},"VELO-BOSS":{coins:2500},"FREE-RIDE":{coins:300},"REBIRTH1":{coins:0,rebirthCount:1}};
 document.getElementById("codeInput").addEventListener("input",function(){
   let v=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,""); this.value=v.slice(0,9);
 });
